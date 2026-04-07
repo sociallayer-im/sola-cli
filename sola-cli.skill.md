@@ -5,7 +5,7 @@ A Node.js CLI tool for managing events, venues, and communities on the Sola plat
 ## Installation
 
 ```bash
-cd /Users/jiang/apps/sola-cli
+cd sola-cli
 npm install
 chmod +x bin/sola.js
 ```
