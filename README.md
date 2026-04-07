@@ -88,13 +88,20 @@ node bin/sola.js event create \
 
 ### Authentication
 
-**Sign in with email** (two-step: sends 6-digit code to email, then prompts for it)
+**Sign in with email** — Supports four modes (interactive, send-only, with-code, piped)
 
 ```bash
+# Interactive mode (prompts for code)
 node bin/sola.js auth signin --email user@example.com
+
+# Non-interactive: send code only (step 1)
+node bin/sola.js auth signin --email user@example.com --send-only
+
+# Non-interactive: complete with code (step 2)
+node bin/sola.js auth signin --email user@example.com --code 123456
 ```
 
-Auth token is automatically saved to `~/.sola/config.json` and used for all subsequent authenticated operations.
+Auth token is automatically saved to `~/.sola/config.json` and used for all subsequent authenticated operations. See **[COMMANDS.md](./COMMANDS.md#auth-signin)** for full details on all four modes.
 
 **Set profile handle** (unique username, required after first sign-in)
 
@@ -231,9 +238,10 @@ Clean, modular design with minimal dependencies:
 | Native `fetch` (no `node-fetch`) | Node 18+ has built-in fetch; no extra dependencies |
 | One `request()` helper | Single point for auth injection, error handling, and base URL |
 | `~/.sola/config.json` | Standard location for CLI tools; auto-created on first sign-in |
-| `readline` for code prompt | Zero extra deps for interactive two-step sign-in flow |
+| `readline` for code prompt | Zero extra deps for interactive prompts; `--send-only` flag for non-interactive |
 | `auth_token` as query param | API requires tokens in query string (both GET and POST) |
 | Venue params nested under `venue` key | Matches Sola API's Rails strong parameters requirement |
+| `--send-only` flag | Enables fully non-interactive workflows (step 1) with separate `--code` step (step 2) |
 | Error handling wrapper | Centralized `handleError()` reduces duplication across commands |
 | ESM (`"type": "module"`) | Top-level `await` support; modern Node convention |
 
@@ -273,6 +281,17 @@ See **[COMMANDS.md](./COMMANDS.md)** for full parameter documentation and additi
 
 All commands output **JSON** to stdout on success, making them pipe-friendly and easy to integrate into scripts.
 
+**Two-step signin** (perfect for CI/CD or automated workflows):
+```bash
+# Step 1: Send verification code
+node bin/sola.js auth signin --email user@example.com --send-only
+
+# (Check email, copy code)
+
+# Step 2: Complete signin
+node bin/sola.js auth signin --email user@example.com --code 482910
+```
+
 **Extract event IDs:**
 ```bash
 node bin/sola.js event list --group 10 --limit 5 | jq '.events[].id'
@@ -288,7 +307,7 @@ node bin/sola.js event list --group 10 | jq '.events[] | select(.tags | contains
 node bin/sola.js venue list --group 10 | jq '.venues[] | {id, title, capacity}'
 ```
 
-**Check operation status:**
+**Create event and check success:**
 ```bash
 node bin/sola.js event create ... && echo "✓ Event created"
 ```
@@ -341,12 +360,11 @@ node bin/sola.js event list --group 3409 | jq '.events | length'
 
 ## Full Documentation
 
-See **[COMMANDS.md](./COMMANDS.md)** for complete parameter references and examples for all 14+ commands including:
-- Advanced event filtering (dates, collections, tags)
-- Venue management with coordinates
-- Badge creation and distribution
-- Voting and points systems
-- Form submissions
+See **[COMMANDS.md](./COMMANDS.md)** for comprehensive documentation including:
+- **All signin modes** — Interactive, send-only, with-code, and piped workflows
+- **All command parameters** — Complete parameter tables and descriptions for all 14+ commands
+- **Advanced features** — Event filtering (dates, collections, tags), venue management, badges, voting, points
+- **Real-world examples** — Workflow examples for common operations
 
 ## License
 
