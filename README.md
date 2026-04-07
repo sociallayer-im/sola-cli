@@ -51,13 +51,15 @@ node bin/sola.js auth signin --email your@email.com
 # Saves auth_token to ~/.sola/config.json
 ```
 
-**Non-interactive mode** (CI/CD friendly):
+**Non-interactive mode** (send-only + code):
 ```bash
-# Step 1: Send code
-node bin/sola.js auth signin --email your@email.com
+# Step 1: Send code only
+node bin/sola.js auth signin --email your@email.com --send-only
+# Check email for code
 
 # Step 2: Complete signin with code
 node bin/sola.js auth signin --email your@email.com --code 123456
+# Saves auth_token to ~/.sola/config.json
 ```
 
 ### 2. Set your handle (one-time)

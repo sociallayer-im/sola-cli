@@ -13,22 +13,21 @@ Authenticate with the Sola API and manage your identity.
 
 ### `auth signin`
 
-Two-step sign-in: sends a 6-digit verification code to the email. Saves `auth_token` to `~/.sola/config.json`.
-
-Supports both **interactive** (prompts for code) and **non-interactive** (accepts `--code` flag) modes.
+Sign in with email. Supports **four modes** for different workflows.
 
 ```
-sola auth signin --email <email> [--code <code>]
+sola auth signin --email <email> [--send-only] [--code <code>]
 ```
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `--email` | string | Yes | Email address to receive the verification code (e.g. `user@example.com`) |
+| `--send-only` | boolean | No | Send code only and exit. Useful for two-step flows or when you want to handle code entry separately. |
 | `--code` | number | No | Verification code (6 digits). If provided, skips interactive prompt and completes signin immediately. |
 
-**Examples:**
+**Four Modes:**
 
-**Interactive mode** (prompts for code):
+**1. Interactive mode** (default — prompts for code):
 ```bash
 sola auth signin --email user@example.com
 # Sending verification code to user@example.com...
@@ -36,14 +35,21 @@ sola auth signin --email user@example.com
 # Signed in successfully. Token saved to ~/.sola/config.json
 ```
 
-**Non-interactive mode** (direct code entry):
+**2. Send-only mode** (step 1 of two-step flow):
+```bash
+sola auth signin --email user@example.com --send-only
+# Sending verification code to user@example.com...
+# Code sent to user@example.com
+```
+
+**3. Complete with code** (step 2 of two-step flow):
 ```bash
 sola auth signin --email user@example.com --code 482910
 # Sending verification code to user@example.com...
 # Signed in successfully. Token saved to ~/.sola/config.json
 ```
 
-**Piped/automated mode** (just sends code):
+**4. Piped/automated mode** (non-TTY stdin):
 ```bash
 echo "" | sola auth signin --email user@example.com
 # Sending verification code to user@example.com...
@@ -51,14 +57,25 @@ echo "" | sola auth signin --email user@example.com
 #   sola auth signin --email user@example.com --code <code>
 ```
 
-**Workflow example** (for CI/CD or scripts):
-```bash
-# Step 1: Send code
-sola auth signin --email user@example.com
-# Check email for code
+**Recommended workflows:**
 
-# Step 2: Complete signin with code
+**For interactive CLI:**
+```bash
+sola auth signin --email user@example.com
+```
+
+**For scripts/CI-CD (fully non-interactive):**
+```bash
+sola auth signin --email user@example.com --send-only
+# (email arrives)
 sola auth signin --email user@example.com --code 482910
+```
+
+**For piped/automated flows:**
+```bash
+sola auth signin --email user@example.com | grep code
+# (copy code from email)
+sola auth signin --email user@example.com --code <code>
 ```
 
 ---
