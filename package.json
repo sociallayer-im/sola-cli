@@ -1,0 +1,18 @@
+{
+  "name": "sola-cli",
+  "version": "1.0.0",
+  "description": "CLI wrapper for the Sola API",
+  "type": "module",
+  "bin": {
+    "sola": "./bin/sola.js"
+  },
+  "scripts": {
+    "start": "node bin/sola.js"
+  },
+  "dependencies": {
+    "yargs": "^18.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
