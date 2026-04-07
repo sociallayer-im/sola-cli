@@ -43,10 +43,21 @@ This file is created automatically after signing in with `sola auth signin`.
 ## Quick Start
 
 ### 1. Sign in
+
+**Interactive mode** (default):
 ```bash
 node bin/sola.js auth signin --email your@email.com
-# Prompts for 6-digit code sent to email
+# Sends code to email, then prompts for it
 # Saves auth_token to ~/.sola/config.json
+```
+
+**Non-interactive mode** (CI/CD friendly):
+```bash
+# Step 1: Send code
+node bin/sola.js auth signin --email your@email.com
+
+# Step 2: Complete signin with code
+node bin/sola.js auth signin --email your@email.com --code 123456
 ```
 
 ### 2. Set your handle (one-time)

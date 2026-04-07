@@ -13,22 +13,52 @@ Authenticate with the Sola API and manage your identity.
 
 ### `auth signin`
 
-Two-step sign-in: sends a 6-digit verification code to the email, then prompts for it interactively. Saves `auth_token` to `~/.sola/config.json`.
+Two-step sign-in: sends a 6-digit verification code to the email. Saves `auth_token` to `~/.sola/config.json`.
+
+Supports both **interactive** (prompts for code) and **non-interactive** (accepts `--code` flag) modes.
 
 ```
-sola auth signin --email <email>
+sola auth signin --email <email> [--code <code>]
 ```
 
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `--email` | string | Yes | Email address to receive the verification code (e.g. `user@example.com`) |
+| `--code` | number | No | Verification code (6 digits). If provided, skips interactive prompt and completes signin immediately. |
 
-**Example:**
+**Examples:**
+
+**Interactive mode** (prompts for code):
 ```bash
 sola auth signin --email user@example.com
 # Sending verification code to user@example.com...
 # Enter the verification code: 482910
 # Signed in successfully. Token saved to ~/.sola/config.json
+```
+
+**Non-interactive mode** (direct code entry):
+```bash
+sola auth signin --email user@example.com --code 482910
+# Sending verification code to user@example.com...
+# Signed in successfully. Token saved to ~/.sola/config.json
+```
+
+**Piped/automated mode** (just sends code):
+```bash
+echo "" | sola auth signin --email user@example.com
+# Sending verification code to user@example.com...
+# Code sent. Check your email and run:
+#   sola auth signin --email user@example.com --code <code>
+```
+
+**Workflow example** (for CI/CD or scripts):
+```bash
+# Step 1: Send code
+sola auth signin --email user@example.com
+# Check email for code
+
+# Step 2: Complete signin with code
+sola auth signin --email user@example.com --code 482910
 ```
 
 ---
