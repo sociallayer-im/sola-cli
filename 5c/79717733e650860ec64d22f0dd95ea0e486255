@@ -1,0 +1,28 @@
+lib/commands/event.js
+  s_212b3fb8ecd46f::t_dba6fb7dced1d8 199-204,217-218
+  s_212b3fb8ecd46f::t_8cdf2bb0ac7ea5 131-152,169-177
+lib/api.js
+  s_212b3fb8ecd46f::t_eb025a631e7d58 99-110
+CLAUDE.md
+  s_212b3fb8ecd46f::t_51dd140f9a2b2e 1-189
+bin/sola.js
+  s_212b3fb8ecd46f::t_f24e7d0247c59b 11,22
+lib/commands/ticket.js
+  s_212b3fb8ecd46f::t_6bd3b6d058d186 1-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.7",
+  "base_commit_sha": "5c79717733e650860ec64d22f0dd95ea0e486255",
+  "prompts": {},
+  "sessions": {
+    "s_212b3fb8ecd46f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6bae81f-00a5-4e13-b16c-f46ae68799f0",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
