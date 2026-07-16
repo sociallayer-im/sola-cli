@@ -67,10 +67,12 @@ Each command module exports a **yargs command builder** with consistent structur
 
 **Modules:**
 - `auth.js`: Sign in (4 modes: interactive, send-only, with-code, piped), set handle
-- `profile.js`: Get profile by email or handle
-- `event.js`: Get, list (with filtering), create, update events
-- `venue.js`: Get, list (auth required), create, update venues
-- `group.js`: Get group by numeric ID or handle
+- `profile.js`: me, update (auth); search, get-by-id, get-by-email, get-by-handle, groups (public)
+- `event.js`: get, list, discover, my-events, create, update, join, cancel, unpublish, approve, reject, remove-participant
+- `venue.js`: get, list, create, update, remove, check-availability
+- `group.js`: get (`--detail`), create, update, members, add-manager, remove-manager, remove-member, leave
+- `invite.js`: send, accept, request, mine (group invitations, all auth)
+- `ticket.js`: rsvp, list-group-types, check-coupon, cancel
 - `service.js`: Image upload (multiple providers)
 
 ## Key Implementation Patterns
@@ -138,17 +140,27 @@ Base URL: `https://api.sola.day` (no `/api/` prefix)
 - `POST /profile/create` — Set handle after sign-in
 
 **Read endpoints (no auth required):**
-- `GET /profile/get_by_email?email=`
-- `GET /profile/get_by_handle?handle=`
-- `GET /event/get?id=`
-- `GET /event/list?group_id=` (supports filtering)
-- `GET /venue/get?id=`
-- `GET /group/get?group_id=`
+- `GET /profile/get_by_email`, `/profile/get_by_handle`, `/profile/get_by_id`, `/profile/search`, `/profile/groups`
+- `GET /event/get`, `/event/list`, `/event/discover`
+- `GET /group/get` (`include_detail=true` nests `venues[]`), `/group/members`
+- `GET /venue/get`
+
+**Auth-gated read endpoints:**
+- `GET /profile/me`, `/event/my_event_list`, `/group/my_pending_invites`
 
 **Write endpoints (auth required):**
-- `POST /event/create`, `/event/update`
-- `POST /venue/create`, `/venue/list`, `/venue/update`
+- `POST /profile/update`
+- `POST /group/create`, `/group/update`, `/group/add_manager`, `/group/remove_manager`, `/group/remove_member`, `/group/leave`
+- `POST /group/send_invite`, `/group/accept_invite`, `/group/request_invite`
+- `POST /event/create`, `/event/update`, `/event/join`, `/event/cancel`, `/event/unpublish`, `/event/approve_participant`, `/event/reject_participant`, `/event/remove_participant`
+- `POST /venue/create`, `/venue/update`, `/venue/remove`, `/venue/check_availability` (check_availability is actually public)
 - `POST /service/upload_image*` (multiple versions)
+
+**Gotchas learned from the API:**
+- There is **no `/venue/list` route** — list venues via `group/get?include_detail=true` and read `venues[]` (see `listVenues` in `api.js`).
+- Venue location/coordinates are **not** free-text fields; they come from a `Place` referenced by `place_id`. The venue permit list is `title, about, link, capacity, start_date, end_date, require_approval, visibility, featured_image_url, place_id, tags[], amenities[], track_ids[], image_urls[]`.
+- Participant identification is inconsistent: `approve_participant`/`reject_participant` take `participant_id` (the Participant record id); `remove_participant`/`cancel` use event `id` + `profile_id`.
+- Group create/update wrap fields under a `group:` key; profile update wraps under `profile:`.
 
 See `README.md` and `COMMANDS.md` for full parameter documentation.
 

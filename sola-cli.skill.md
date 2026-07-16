@@ -35,22 +35,57 @@ sola auth set-handle --handle yourhandle
 
 ### Profile Management
 
-**Get profile by email:**
+**Your own profile (requires auth):**
 ```bash
-sola profile get-by-email --email user@example.com
+sola profile me
+sola profile update --nickname "Alice" --about "Builder" --twitter "@alice"
 ```
 
-**Get profile by handle:**
+**Look up profiles (public):**
 ```bash
+sola profile get-by-email --email user@example.com
 sola profile get-by-handle --handle alice
+sola profile get-by-id --id 123
+sola profile search --keyword ali --limit 10
+sola profile groups --handle alice --role owner,manager   # groups a profile belongs to
 ```
 
 ### Groups
 
-**Get group info by ID or handle:**
+**Get group info by ID or handle** (`--detail` also nests venues/tracks):
 ```bash
 sola group get --id 10
-sola group get --id solaverse
+sola group get --id solaverse --detail
+```
+
+**List members (public):**
+```bash
+sola group members --group solaverse
+```
+
+**Create / update a group (requires auth):**
+```bash
+sola group create --handle mygroup --nickname "My Group" --timezone Asia/Singapore
+sola group update --id 10 --about "Updated description" --website https://sola.day
+```
+
+**Manage membership (requires auth):**
+```bash
+sola group add-manager    --group 10 --profile 123
+sola group remove-manager --group 10 --profile 123
+sola group remove-member  --group 10 --profile 123
+sola group leave          --group 10 --profile 123   # leave yourself
+```
+
+### Invitations
+
+All require auth. Send needs manager role.
+
+```bash
+sola invite send    --group 10 --receivers "alice,bob@example.com" --role member
+sola invite request --group 10 --role member --message "Would love to join"
+sola invite mine                                  # pending invites addressed to you
+sola invite accept  --id 55
 ```
 
 ### Events
@@ -83,30 +118,45 @@ sola event create \
 sola event update --id 123 --title "New Title" --location "New Location"
 ```
 
+**Discover / your events:**
+```bash
+sola event discover                              # featured events, popups, top groups (public)
+sola event my-events --collection upcoming       # requires auth
+```
+
+**Participation (requires auth):**
+```bash
+sola event join   --id 42                         # RSVP
+sola event cancel --id 42                          # cancel your RSVP
+sola event unpublish --id 42                        # organizer: cancel the event
+
+# Approve/reject take a participant RECORD id; remove-participant takes a profile id
+sola event approve --participant 9001
+sola event reject  --participant 9001
+sola event remove-participant --id 42 --profile 123
+```
+
 ### Venues
 
-**Get venue by ID:**
+Venue location comes from a **Place** (`--place-id`), not free-text fields.
+
+**Get / list venues (public):**
 ```bash
-sola venue get --id 115
+sola venue get  --id 115
+sola venue list --group 10          # via group detail view; no /venue/list route exists
 ```
 
-**List group venues:**
+**Create / update venue (requires auth + manager):**
 ```bash
-sola venue list --group 10
-```
-
-**Create venue:**
-```bash
-sola venue create \
-  --group 10 \
-  --title "Main Hall" \
-  --location "123 Main St" \
-  --capacity 200
-```
-
-**Update venue:**
-```bash
+sola venue create --group 10 --title "Main Hall" --capacity 200 --tags "indoor,stage"
 sola venue update --id 115 --capacity 250 --title "Updated Hall"
+sola venue remove --id 115
+```
+
+**Check availability (public):**
+```bash
+sola venue check-availability --id 115 \
+  --start "2026-06-15T09:00:00" --end "2026-06-15T11:00:00" --timezone Asia/Singapore
 ```
 
 ## Output
@@ -136,7 +186,7 @@ sola event create --help
 See the [COMMANDS.md](./COMMANDS.md) file for:
 - Complete parameter documentation for all commands
 - Advanced filtering options
-- All 14+ commands (includes badges, voting, points, forms, etc.)
+- Full coverage of the `auth`, `profile`, `group`, `invite`, `event`, `venue`, `ticket`, and `service` command groups
 - Real-world workflow examples
 
 ## Notes

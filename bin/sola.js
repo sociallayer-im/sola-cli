@@ -7,6 +7,7 @@ import * as profile from '../lib/commands/profile.js'
 import * as event   from '../lib/commands/event.js'
 import * as venue   from '../lib/commands/venue.js'
 import * as group   from '../lib/commands/group.js'
+import * as invite  from '../lib/commands/invite.js'
 import * as service from '../lib/commands/service.js'
 import * as ticket  from '../lib/commands/ticket.js'
 
@@ -18,6 +19,7 @@ yargs(hideBin(process.argv))
   .command(event)
   .command(venue)
   .command(group)
+  .command(invite)
   .command(service)
   .command(ticket)
   .demandCommand(1, 'Specify a command')
