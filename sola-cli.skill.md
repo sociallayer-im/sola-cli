@@ -18,163 +18,157 @@ Before using most commands, sign in:
 # Step 1: Send verification code
 sola auth signin --email your@email.com --send-only
 
-# (Check email for 6-digit code)
+# (Check email for the alphanumeric code, e.g. AB12CD)
 
 # Step 2: Complete signin with code
-sola auth signin --email your@email.com --code 123456
+sola auth signin --email your@email.com --code AB12CD
 ```
 
-This saves your auth token to `~/.sola/config.json` for future commands.
+This saves your JWT to `~/.sola/config.json` for future commands. New emails
+sign up automatically on first successful verify — no separate signup step.
 
-Set your profile handle (required once after first sign-in):
+Set your username (optional, one-time):
 ```bash
-sola auth set-handle --handle yourhandle
+sola user update --name yourhandle --nickname "Your Name"
 ```
 
 ## Commands
 
-### Profile Management
+### User
 
-**Your own profile (requires auth):**
-```bash
-sola profile me
-sola profile update --nickname "Alice" --about "Builder" --twitter "@alice"
-```
+soon's person model is `User` (its predecessor called this "profile"). Handles
+live in `name`, display names in `nickname`.
 
-**Look up profiles (public):**
 ```bash
-sola profile get-by-email --email user@example.com
-sola profile get-by-handle --handle alice
-sola profile get-by-id --id 123
-sola profile search --keyword ali --limit 10
-sola profile groups --handle alice --role owner,manager   # groups a profile belongs to
+sola user me                                        # your own record, requires auth
+sola user update --nickname "Alice" --bio "Builder"  # requires auth
+sola user get --id alice                             # public lookup, by TSID or username
+sola user groups --id alice --role owner,manager     # groups alice belongs to
 ```
 
 ### Groups
 
-**Get group info by ID or handle** (`--detail` also nests venues/tracks):
+A group **is** a popup city (one table) — `start-date`/`end-date`/`location` double as popup-city fields.
+
+**Get group info** (no auth):
 ```bash
-sola group get --id 10
-sola group get --id solaverse --detail
+sola group get --id solaverse
 ```
 
-**List members (public):**
+**Create / update** (requires auth):
 ```bash
-sola group members --group solaverse
+sola group create --name mygroup --nickname "My Group" --timezone Asia/Singapore
+sola group update --id 3mloe... --bio "Updated description" --location Singapore
 ```
 
-**Create / update a group (requires auth):**
+**Members and roles** (requires auth for writes; `members` is public). Membership
+writes are addressed by **membership id**, not user id — get it from `members` first:
 ```bash
-sola group create --handle mygroup --nickname "My Group" --timezone Asia/Singapore
-sola group update --id 10 --about "Updated description" --website https://sola.day
-```
-
-**Manage membership (requires auth):**
-```bash
-sola group add-manager    --group 10 --profile 123
-sola group remove-manager --group 10 --profile 123
-sola group remove-member  --group 10 --profile 123
-sola group leave          --group 10 --profile 123   # leave yourself
+sola group members --group solaverse                       # includes each membership's id
+sola group add-member --group 3mloe... --user 3khj... --role member
+sola group set-role --group 3mloe... --membership 55 --role manager
+sola group remove-membership --group 3mloe... --membership 55
+sola group leave --group 3mloe...                           # convenience: finds your own membership
 ```
 
 ### Invitations
 
-All require auth. Send needs manager role.
+Everything requires auth — invites carry PII (email addresses).
 
 ```bash
-sola invite send    --group 10 --receivers "alice,bob@example.com" --role member
-sola invite request --group 10 --role member --message "Would love to join"
-sola invite mine                                  # pending invites addressed to you
-sola invite accept  --id 55
+sola invite send --group 3mloe... --receivers "alice,bob@example.com" --role member
+sola invite request --group 3mloe...             # self-service join request
+sola invite pending                               # invites addressed to you
+sola invite accept --group 3mloe... --id 55
 ```
 
 ### Events
 
-**Get a single event:**
+**Get / browse** (public; personalizes when signed in):
 ```bash
-sola event get --id 123
+sola event get --id 0GA2...
+sola event list --group solaverse
+sola event list --group solaverse --collection upcoming --limit 20
+sola event list --group solaverse --tags "web3,workshop" --start-date 2026-06-01
 ```
 
-**List group events:**
+**Create** — location resolves through a Place, not free text:
 ```bash
-sola event list --group 10
-sola event list --group 10 --collection upcoming --limit 20
-sola event list --group 10 --tags "web3,workshop" --start-date 2026-06-01
-```
+sola place create --name "Hotel Trio - Patio" --address "..."
+# → note the returned place id
 
-**Create event:**
-```bash
 sola event create \
-  --group 10 \
+  --group solaverse \
   --title "Community Lunch" \
   --start "2026-10-10T12:00:00" \
   --end "2026-10-10T14:00:00" \
   --timezone America/Los_Angeles \
-  --location "Hotel Trio - Patio"
+  --place-id <id from above>
 ```
 
-**Update event:**
+**Update / cancel / approve** (requires auth + ownership or manager role):
 ```bash
-sola event update --id 123 --title "New Title" --location "New Location"
+sola event update --id 0GA2... --title "New Title"
+sola event cancel --id 0GA2...      # soft-cancel; does not delete the record
+sola event approve --id 0GA2...     # publish a pending event
 ```
 
-**Discover / your events:**
+**Participation** — a separate command group, requires auth:
 ```bash
-sola event discover                              # featured events, popups, top groups (public)
-sola event my-events --collection upcoming       # requires auth
-```
-
-**Participation (requires auth):**
-```bash
-sola event join   --id 42                         # RSVP
-sola event cancel --id 42                          # cancel your RSVP
-sola event unpublish --id 42                        # organizer: cancel the event
-
-# Approve/reject take a participant RECORD id; remove-participant takes a profile id
-sola event approve --participant 9001
-sola event reject  --participant 9001
-sola event remove-participant --id 42 --profile 123
+sola participant join --event 0GA2...
+sola participant cancel --event 0GA2...                       # cancels YOUR OWN RSVP
+sola participant list --event 0GA2...                         # find participant ids
+sola participant approve --event 0GA2... --id 9001            # manager
+sola participant reject --event 0GA2... --id 9001             # manager
 ```
 
 ### Venues
 
-Venue location comes from a **Place** (`--place-id`), not free-text fields.
+**Every venue action requires auth** — unlike groups/events, there's no anonymous read.
 
-**Get / list venues (public):**
 ```bash
-sola venue get  --id 115
-sola venue list --group 10          # via group detail view; no /venue/list route exists
+sola venue get --id 115
+sola venue list --group solaverse
+sola venue create --group 3mloe... --name "Main Hall" --capacity 200 --tags "indoor,stage"
+sola venue update --id 115 --capacity 250
+sola venue conflict --id 115 --start "2026-06-15T09:00:00" --end "2026-06-15T11:00:00"
 ```
 
-**Create / update venue (requires auth + manager):**
+### Tracks (event programs)
+
+Reads are public; writes require auth + manager role.
 ```bash
-sola venue create --group 10 --title "Main Hall" --capacity 200 --tags "indoor,stage"
-sola venue update --id 115 --capacity 250 --title "Updated Hall"
-sola venue remove --id 115
+sola track list --group solaverse
+sola track create --group 3mloe... --title "Workshops"
 ```
 
-**Check availability (public):**
+### Tickets
+
 ```bash
-sola venue check-availability --id 115 \
-  --start "2026-06-15T09:00:00" --end "2026-06-15T11:00:00" --timezone Asia/Singapore
+sola ticket list-types --group solaverse                       # public
+sola ticket create --event 0GA2... --title "General" --quantity 50
+sola ticket rsvp --event 0GA2... --ticket 7                     # confirms immediately if free
+```
+
+### Discover / search
+
+Both public:
+```bash
+sola discover home                     # featured groups, popup cities, upcoming events
+sola discover search --keyword solana
 ```
 
 ## Output
 
-All commands return **JSON** output, making them easy to parse and integrate.
+All commands return **JSON**. List endpoints return `{"data": [...], "meta": {...}}`.
 
-**Example with jq:**
 ```bash
-# Extract event IDs
-sola event list --group 10 | jq '.events[].id'
-
-# Get venue titles and capacities
-sola venue list --group 10 | jq '.venues[] | {title, capacity}'
+sola event list --group solaverse | jq '.data[].id'
+sola venue list --group solaverse | jq '.data[] | {id, name, capacity}'
 ```
 
 ## Help
 
-View complete help for any command:
 ```bash
 sola --help
 sola event --help
@@ -183,52 +177,50 @@ sola event create --help
 
 ## Full Documentation
 
-See the [COMMANDS.md](./COMMANDS.md) file for:
+See [COMMANDS.md](./COMMANDS.md) for:
 - Complete parameter documentation for all commands
-- Advanced filtering options
-- Full coverage of the `auth`, `profile`, `group`, `invite`, `event`, `venue`, `ticket`, and `service` command groups
-- Real-world workflow examples
+- Advanced event filtering, availability rules, coupon/payment-method shapes
+- Full coverage of the `auth`, `user`, `group`, `invite`, `event`, `participant`, `venue`, `place`, `track`, `ticket`, `discover`, and `service` command groups
+- What changed vs. the pre-rewrite (sails-era) CLI
 
 ## Notes
 
-- **API Base:** `https://api.sola.day`
+- **API:** `https://api.sola.day/api/v1` (`Authorization: Bearer <jwt>`, not a query param)
 - **Config Location:** `~/.sola/config.json` (auto-created on signin)
 - **Requirements:** Node.js 18+ (for native fetch)
 - **Dependencies:** Only `yargs` for CLI parsing (no heavy packages)
+- **IDs:** opaque TSID strings (e.g. `"3mloe3vkidht3"`), not integers
 
 ## Examples
 
 ### Create an event at a specific venue
 
 ```bash
-# 1. List venues to find Hotel Trio - Patio (ID: 115)
-sola venue list --group 3409 | jq '.venues[] | select(.title == "Hotel Trio - Patio") | {id, title}'
+# 1. List venues to find "Hotel Trio - Patio"
+sola venue list --group solaverse | jq '.data[] | select(.name == "Hotel Trio - Patio") | {id, name}'
 
 # 2. Create event at that venue
 sola event create \
-  --group 3409 \
+  --group solaverse \
   --title "Community Dinner" \
   --start "2026-10-10T12:00:00" \
   --end "2026-10-10T14:00:00" \
   --timezone America/Los_Angeles \
-  --location "Hotel Trio - Patio"
+  --venue-id 115
 ```
 
 ### List upcoming events and extract details
 
 ```bash
-sola event list --group 10 --collection upcoming | jq '.events[] | {id, title, start_time, location}'
+sola event list --group solaverse --collection upcoming | jq '.data[] | {id, title, start_time}'
 ```
 
 ### Two-step non-interactive signin (for CI/CD)
 
 ```bash
-# Send code
 sola auth signin --email bot@example.com --send-only
-# Code sent to bot@example.com
-
-# Later, complete signin with code from email
-sola auth signin --email bot@example.com --code 123456
+# (check email, copy code)
+sola auth signin --email bot@example.com --code AB12CD
 ```
 
 ## Error Handling
@@ -238,10 +230,9 @@ Commands output JSON on success. On error:
 - Process exits with code 1
 - No JSON output
 
-Example:
 ```bash
-$ sola event get --id 999999
-Error: Couldn't find Event with 'id'=999999
+$ sola event get --id doesnotexist
+Error: Not found
 
 $ echo $?
 1

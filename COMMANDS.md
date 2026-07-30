@@ -1,585 +1,405 @@
 # sola-cli Commands Reference
 
-CLI wrapper for the [Sola API](https://api.sola.day). All commands output JSON.
+CLI wrapper for the Sola API (`soon`, the current Rails backend). All commands output JSON.
 
-**Base URL:** `https://api.sola.day`
-**Auth token** is read from `~/.sola/config.json` automatically for commands that require it.
+**Base URL:** `https://api.sola.day/api/v1` (override with `SOLA_API_URL=http://localhost:3000` for a local `soon`)
+**Auth:** a JWT read from `~/.sola/config.json`, sent as `Authorization: Bearer <token>`, for any command marked "requires auth".
 
-Commands are grouped by domain: `auth`, `profile`, `group`, `invite`, `event`, `venue`, `ticket`, `service`.
+Commands are grouped by domain: `auth`, `user`, `group`, `invite`, `event`, `participant`, `venue`, `place`, `track`, `ticket`, `discover`, `service`.
 
 ---
 
 ## auth
 
-Authenticate with the Sola API and manage your identity.
-
 ### `auth signin`
 
-Sign in with email. Supports **four modes** for different workflows.
+Sign in with an emailed one-time code (alphanumeric, e.g. `AB12CD` — not numeric). New emails sign up automatically on first successful verify.
 
 ```
 sola auth signin --email <email> [--send-only] [--code <code>]
 ```
 
 | Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--email` | string | Yes | Email address to receive the verification code |
-| `--send-only` | boolean | No | Send code only and exit. For two-step / CI flows. |
-| `--code` | number | No | Verification code. If provided, completes signin immediately. |
-
-**Modes:**
+|--------|------|----------|--------------|
+| `--email` | string | Yes | Email address to receive the code |
+| `--send-only` | boolean | No | Send code only and exit (step 1 of a two-step flow) |
+| `--code` | string | No | Verification code — if given, completes signin immediately |
 
 ```bash
-# 1. Interactive (prompts for code)
-sola auth signin --email user@example.com
+sola auth signin --email user@example.com                    # interactive: send + prompt
+sola auth signin --email user@example.com --send-only        # step 1
+sola auth signin --email user@example.com --code AB12CD      # step 2
+```
 
-# 2. Send-only (step 1 of two-step flow)
-sola auth signin --email user@example.com --send-only
+### `auth whoami`
 
-# 3. Complete with code (step 2)
-sola auth signin --email user@example.com --code 482910
+Show the currently authenticated user. Requires auth.
 
-# 4. Piped / non-TTY: sends code, prints follow-up command
-echo "" | sola auth signin --email user@example.com
+```
+sola auth whoami
 ```
 
 ---
 
-### `auth set-handle`
+## user
 
-Set a unique handle on your profile after signing in (`POST /profile/create`). Requires auth.
+soon's person model is `User` — sails called this "profile". Handles/usernames live in `name`; display names in `nickname`.
 
+### `user me`
+Requires auth. Includes private fields (`email`, `permissions`) no public lookup exposes.
 ```
-sola auth set-handle --handle <handle>
-```
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--handle` | string | Yes | Unique alphanumeric handle, lowercase, no spaces |
-
----
-
-## profile
-
-Look up and manage Sola user profiles. `me` and `update` require auth; the rest are public.
-
-### `profile me`
-
-Fetch the currently authenticated profile (`GET /profile/me`). Requires auth.
-
-```bash
-sola profile me
+sola user me
 ```
 
-### `profile update`
-
-Update your own profile (`POST /profile/update`). Requires auth. Only the fields you pass are changed.
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `--nickname` | string | Display name |
-| `--about` | string | Bio / about text (Markdown) |
-| `--location` | string | Human-readable location |
-| `--image-url` | string | Avatar image URL |
-| `--twitter` / `--github` / `--discord` / `--telegram` | string | Social links (bundled into `social_links`) |
-
-```bash
-sola profile update --nickname "Alice" --about "Builder" --twitter "@alice"
+### `user get`
+No auth required.
+```
+sola user get --id <tsid-or-username>
 ```
 
-### `profile search`
-
-Search profiles by handle, username, or nickname (`GET /profile/search`). No auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--keyword` | string | Yes | Search term (matched against handle/username/nickname) |
-| `--limit` | number | No | Max results, 1–20 (default 5) |
-
-```bash
-sola profile search --keyword ali --limit 10
+### `user update`
+Requires auth. Only passed fields change. `email` is not updatable here (it's the login identity).
 ```
-
-### `profile get-by-id`
-
-Fetch a profile by numeric ID (`GET /profile/get_by_id`). No auth.
-
-```bash
-sola profile get-by-id --id 123
+sola user update [--name <name>] [--nickname <name>] [--bio <text>] [--image-url <url>]
 ```
+`--name` can't be blanked out once set.
 
-### `profile get-by-email`
-
-Fetch a profile by registered email (`GET /profile/get_by_email`). No auth.
-
-```bash
-sola profile get-by-email --email user@example.com
+### `user groups`
+No auth required.
 ```
-
-### `profile get-by-handle`
-
-Fetch a profile by handle (`GET /profile/get_by_handle`). No auth.
-
-```bash
-sola profile get-by-handle --handle alice
-```
-
-### `profile groups`
-
-List the groups a profile belongs to, by handle (`GET /profile/groups`). No auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--handle` | string | Yes | Handle of the profile |
-| `--role` | string | No | Comma-separated role filter (e.g. `owner,manager`) |
-
-```bash
-sola profile groups --handle alice --role owner,manager
+sola user groups --id <tsid-or-username> [--role owner,manager]
 ```
 
 ---
 
 ## group
 
-Look up and manage Sola groups. `get`, `members` are public; `create`, `update`, and membership changes require auth.
+A **Group is also a popup city** — one table, no separate popup-city entity. `name` is the unique slug (set once at create, immutable after); `nickname` is the display name; `start_date`/`end_date`/`location` double as popup-city fields.
 
 ### `group get`
+No auth required. Always returns full detail (parent/children, tracks, venues, memberships).
+```
+sola group get --id <tsid-or-slug>
+```
 
-Fetch a group by numeric ID or handle (`GET /group/get`).
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--id` | string | Yes | Numeric group ID or handle (e.g. `10` or `"solaverse"`) |
-| `--detail` | boolean | No | Include full detail — **venues**, tracks, etc. |
-
-```bash
-sola group get --id solaverse --detail
+### `group list`
+Requires auth. Lists the groups you belong to.
+```
+sola group list
 ```
 
 ### `group create`
-
-Create a new group (`POST /group/create`). Requires auth. You become the owner.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--handle` | string | Yes | Unique handle for the group |
-| `--nickname` | string | No | Display name |
-| `--about` | string | No | Description (Markdown) |
-| `--timezone` | string | No | IANA timezone (e.g. `Asia/Singapore`) |
-| `--location` | string | No | Human-readable location |
-| `--website` | string | No | Website URL |
-| `--image-url` | string | No | Logo/avatar URL |
-| `--status` | string | No | Group status |
-| `--start-date` / `--end-date` | string | No | Popup-city date range (ISO date) |
-| `--twitter` / `--github` / `--discord` / `--telegram` | string | No | Social links |
-
-```bash
-sola group create --handle solaverse --nickname "SolaVerse" --timezone Asia/Singapore
+Requires auth. You become the owner.
+```
+sola group create --name <slug> [group fields...]
 ```
 
 ### `group update`
+Requires auth + manager role.
+```
+sola group update --id <tsid> [group fields...]
+```
 
-Update an existing group (`POST /group/update`). Requires auth + manager role. Same field options as `create`, plus `--id` (required) instead of `--handle`.
+**Group fields** (create/update):
 
-```bash
-sola group update --id 10 --about "Updated description" --website https://sola.day
+| Option | Description |
+|--------|--------------|
+| `--nickname` | Display name |
+| `--bio` | Description, markdown |
+| `--timezone` | IANA timezone |
+| `--location` | Human-readable location |
+| `--image-url` | Avatar/logo |
+| `--logo-url` | Secondary logo |
+| `--featured-image-url` | Wide banner-style card image |
+| `--banner-image-url` / `--banner-link-url` / `--banner-text` | Group-page banner |
+| `--parent-id` | Nest under a parent group you manage |
+| `--start-date` / `--end-date` | Popup-city window |
+| `--can-publish-event` / `--can-join-event` / `--can-view-event` | Permission flags |
+| `--twitter` / `--github` / `--discord` / `--telegram` | social_links |
+
+`group_tags` (`featured`/`top` homepage curation) is platform-admin-only and not exposed by this CLI.
+
+### `group freeze`
+Requires auth + owner role. Deactivates without deleting.
+```
+sola group freeze --id <tsid>
+```
+
+### `group send-email`
+Requires auth + manager role. Broadcasts to every active member, or previews to one address.
+```
+sola group send-email --id <tsid> --subject <text> --content <text> [--test-recipient <email>]
 ```
 
 ### `group members`
-
-List a group's members with roles (`GET /group/members`). No auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--group` | string | Yes | Numeric group ID or handle |
-
-```bash
-sola group members --group solaverse
+No auth required. Each row includes a **membership id** — needed by `set-role`/`remove-membership`.
+```
+sola group members --group <tsid-or-slug>
 ```
 
-### `group add-manager` / `remove-manager` / `remove-member`
+### `group add-member`
+Requires auth + manager role (owner role needs an existing owner).
+```
+sola group add-member --group <tsid> --user <tsid> [--role member|admin|manager|owner]
+```
 
-Manage membership roles. Require auth. `add-manager`/`remove-member` need manager role; `remove-manager` needs owner role.
+### `group set-role`
+Requires auth. A direct manager/owner can set any role; a **parent**-group manager can only toggle the `manager` role specifically.
+```
+sola group set-role --group <tsid> --membership <id> --role <role>
+```
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--group` | number | Yes | Numeric group ID |
-| `--profile` | number | Yes | Numeric profile ID |
-
-```bash
-sola group add-manager --group 10 --profile 123
-sola group remove-manager --group 10 --profile 123
-sola group remove-member --group 10 --profile 123
+### `group remove-membership`
+Requires auth. Managers remove members/admins; only an owner removes another owner; the last owner can never be removed. Anyone may remove their own membership.
+```
+sola group remove-membership --group <tsid> --membership <id>
 ```
 
 ### `group leave`
-
-Leave a group yourself (`POST /group/leave`). Requires auth. Pass your own profile ID (owners cannot leave).
-
-```bash
-sola group leave --group 10 --profile 123
+Requires auth. Convenience: resolves your own membership id and removes it.
+```
+sola group leave --group <tsid>
 ```
 
 ---
 
 ## invite
 
-Send, accept, and request group invitations (`POST /group/*`). All require auth.
-
-### `invite send`
-
-Invite people to a group by handle, email, or wallet address (`POST /group/send_invite`). Requires manager role. Known profiles are added directly; unknown emails receive an email invite.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--group` | number | Yes | Numeric group ID |
-| `--receivers` | string | Yes | Comma-separated handles, emails, or addresses |
-| `--role` | string | Yes | `member` or `manager` |
-| `--message` | string | No | Message included in the invitation |
+Every action here requires auth — invites carry PII (`receiver_address`), so there's no anonymous read.
 
 ```bash
-sola invite send --group 10 --receivers "alice,bob@example.com" --role member
+sola invite list --group <tsid>                                                 # manager
+sola invite send --group <tsid> --receivers "alice,bob@example.com" --role member [--message <text>]
+sola invite pending                                                              # invites for your email
+sola invite show --id <id>
+sola invite accept --group <tsid> --id <id>
+sola invite cancel --group <tsid> --id <id>                                      # manager
+sola invite revoke --group <tsid> --id <id>                                      # manager
+sola invite request --group <tsid>                                               # self-service, always role=member
+sola invite accept-request --group <tsid> --id <id>                              # manager approves a request
+sola invite send-with-code --group <tsid> [--role member] [--message <text>]     # reusable code
+sola invite accept-with-code --group <tsid> --code <code>
 ```
 
-### `invite accept`
-
-Accept an invitation addressed to you (`POST /group/accept_invite`). Requires auth.
-
-```bash
-sola invite accept --id 55
-```
-
-### `invite request`
-
-Request to join a group yourself (`POST /group/request_invite`). Requires auth; a manager must approve.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--group` | number | Yes | Numeric group ID |
-| `--role` | string | Yes | `member` or `manager` |
-| `--message` | string | No | Message to managers |
-
-```bash
-sola invite request --group 10 --role member --message "Would love to join"
-```
-
-### `invite mine`
-
-List pending invitations addressed to your email (`GET /group/my_pending_invites`). Requires auth.
-
-```bash
-sola invite mine
-```
+`send` matches receivers against existing users by username/email/wallet — matches are added directly (no invite record); only unmatched email addresses get a real email invite.
 
 ---
 
 ## event
 
-Get, list, create, update events and manage participation. Write actions and `my-events` require auth.
+Reads (`get`/`list`) are public and personalize (`is_attending`/`is_owner`/`is_starred`) when signed in. Writes require auth. Joining/leaving/approving participants lives under **`participant`**, not here.
 
 ### `event get`
-
-Fetch a single event by ID (`GET /event/get`).
-
-```bash
-sola event get --id 42
+```
+sola event get --id <tsid>
 ```
 
 ### `event list`
 
-List events for a group with filters (`GET /event/list`).
+| Option | Description |
+|--------|--------------|
+| `--group` | Group TSID/slug to scope to. Omitted + signed in → your groups' events. Omitted + anonymous → all public events. |
+| `--collection` | `upcoming` \| `past` \| `ongoing` |
+| `--search-title` | Substring match on title |
+| `--tags` | Comma-separated, matches ANY |
+| `--venue` / `--track` / `--kind` / `--category` | Filters |
+| `--pinned` | Homepage-pinned only |
+| `--skip-recurring` | Exclude recurring-series events |
+| `--owner` / `--attendee` / `--co-host` / `--starred` | User TSID/username — profile-tab filters |
+| `--start-date` / `--end-date` / `--timezone` | Date window (default UTC) |
+| `--limit` (default 20, cap 500) / `--page` | Pagination |
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--group` | number | Yes | Numeric group ID |
-| `--collection` | string | No | `upcoming`, `past`, `today`, `pinned`, `currentweek` |
-| `--tags` | string | No | Comma-separated tags (matches **any**) |
-| `--start-date` / `--end-date` | string | No | ISO date bounds (group timezone) |
-| `--limit` | number | No | Per page (default 40, max 1000) |
-| `--page` | number | No | Page number (default 1) |
-
-```bash
-sola event list --group 10 --collection upcoming --limit 20
+### `event pending-approval`
+Requires auth. Your manager approval inbox.
 ```
-
-### `event discover`
-
-Get featured events, popups, and top groups (`GET /event/discover`). No auth. Returns `events`, `featured_popups`, `popups`, `groups`.
-
-```bash
-sola event discover
-```
-
-### `event my-events`
-
-List events related to you (`GET /event/my_event_list`). Requires auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--collection` | string | No | `upcoming`, `past`, or `my_stars` |
-| `--limit` | number | No | Per page (default 40, max 1000) |
-| `--page` | number | No | Page number |
-
-```bash
-sola event my-events --collection my_stars
+sola event pending-approval [--limit] [--page]
 ```
 
 ### `event create`
-
-Create a new event (`POST /event/create`). Requires auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--group` | number | Yes | Host group ID |
-| `--title` | string | Yes | Event title |
-| `--start` / `--end` | string | Yes | ISO 8601 datetimes (`--end` after `--start`) |
-| `--timezone` | string | No | IANA timezone (defaults to group timezone) |
-| `--location` | string | No | Human-readable location |
-| `--content` | string | No | Description (Markdown) |
-| `--cover-url` | string | No | Cover image URL |
-| `--tags` | string | No | Comma-separated tags |
-| `--max-participant` | number | No | Attendee cap (omit for unlimited) |
-| `--require-approval` | boolean | No | RSVPs require organizer approval |
-| `--meeting-url` | string | No | Virtual meeting link |
-| `--display` | string | No | `public`, `private`, `hidden`, `normal` |
-| `--ticket-title` / `--ticket-quantity` / `--ticket-status` / `--ticket-type` | — | No | Create a single ticket inline |
-| `--tickets-json` | string | No | Full `tickets_attributes` JSON (overrides `--ticket-*`) |
-
-```bash
-sola event create --group 10 --title "Workshop" \
-  --start "2025-06-15T09:00:00" --end "2025-06-15T11:00:00" --timezone Asia/Singapore
+Requires auth. Times are interpreted in `--timezone` (falling back to the group's), naive strings like `2026-06-15T09:00:00` mean local time there, not UTC.
 ```
+sola event create --group <tsid> --title <text> --start <iso> --end <iso> [fields...]
+```
+
+| Option | Description |
+|--------|--------------|
+| `--timezone` | IANA tz, defaults to group's |
+| `--place-id` | Location, via `place create` |
+| `--venue-id` | Booking — validated for group membership + availability |
+| `--track-id` | Program/series |
+| `--content` / `--image-url` / `--tags` / `--requirement-tags` / `--category` / `--kind` | |
+| `--max-participant` / `--require-approval` / `--meeting-url` / `--external-url` / `--visibility` / `--status` | |
+| `--roles-json` | JSON array, created atomically with the event |
+| `--tickets-json` | JSON array, created atomically with the event |
 
 ### `event update`
-
-Update an existing event (`POST /event/update`). Requires auth + ownership/manager. Only passed fields change. Supports `--id` plus `--title`, `--start`, `--end`, `--timezone`, `--location`, `--content`, `--cover-url`, `--tags`, `--tickets-json`.
-
-```bash
-sola event update --id 42 --title "Renamed Event" --location "Online"
+Requires auth + ownership or manager role. `group_id` is not updatable.
 ```
-
-### `event join`
-
-RSVP / join an event (`POST /event/join`). Requires auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--id` | number | Yes | Numeric event ID |
-| `--form-answers` | string | No | JSON array of `{field_id, value}` — required only if the event has a required form |
-
-```bash
-sola event join --id 42
-sola event join --id 42 --form-answers '[{"field_id":1,"value":"Vegan"}]'
+sola event update --id <tsid> [fields...]
 ```
+Accepts the same field flags as `create` minus `--group`/`--roles-json`/`--tickets-json`/`--requirement-tags`/`--visibility`/`--external-url`/`--category`/`--kind`.
 
 ### `event cancel`
-
-Cancel your own participation (`POST /event/cancel`). Requires auth.
-
-```bash
-sola event cancel --id 42
+Requires auth + ownership or manager role. Soft-cancel (status → cancelled, attendees emailed a calendar cancellation) — does not delete the record.
+```
+sola event cancel --id <tsid>
 ```
 
-### `event unpublish`
-
-Unpublish / cancel an event (`POST /event/unpublish`). Requires auth + ownership/manager.
-
-```bash
-sola event unpublish --id 42
+### `event approve`
+Requires auth + manager role. Publishes a pending event.
+```
+sola event approve --id <tsid>
 ```
 
-### `event approve` / `event reject`
+---
 
-Approve or reject a pending participant on an approval-required event (`POST /event/approve_participant` / `reject_participant`). Requires auth + organizer role.
+## participant
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--participant` | number | Yes | Participant **record** ID (not a profile ID) |
+Everything here requires auth (no anonymous participant read).
 
 ```bash
-sola event approve --participant 9001
-sola event reject  --participant 9001
+sola participant list --event <tsid>
+sola participant join --event <tsid> [--form-answers-json '[{"field_id":1,"value":"..."}]']
+sola participant update --event <tsid> --id <id> --status <status>              # self only
+sola participant cancel --event <tsid>                                          # self, auto-resolves your own record
+sola participant approve --event <tsid> --id <id>                               # manager/owner
+sola participant reject --event <tsid> --id <id>                                # manager/owner
+sola participant check-in --event <tsid> --user <tsid>                          # manager/owner, idempotent
 ```
 
-### `event remove-participant`
-
-Remove a participant by profile ID (`POST /event/remove_participant`). Requires auth + organizer role.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--id` | number | Yes | Numeric event ID |
-| `--profile` | number | Yes | Numeric profile ID of the participant |
-
-```bash
-sola event remove-participant --id 42 --profile 123
-```
+`join` ends up `pending` instead of `attending` if the event requires approval or has a required form and you aren't a manager.
 
 ---
 
 ## venue
 
-Get, list, create, update, and remove venues. Write actions require auth + group manager role.
-
-> **Location note:** a venue's location/coordinates come from a **Place** record referenced by `--place-id` (create one with `place/create`), not from free-text fields on the venue itself.
-
-### `venue get`
-
-Fetch a venue by ID (`GET /venue/get`).
+**Every action requires auth** — unlike groups/events, soon has no anonymous read path for venues.
 
 ```bash
-sola venue get --id 7
+sola venue get --id <id>
+sola venue list [--group <tsid-or-slug>]
+sola venue create --group <tsid> --name <text> [venue fields...]
+sola venue update --id <id> [venue fields...]
+sola venue remove --id <id>                                                     # archives, doesn't delete
+sola venue conflict --id <id> --start <iso> --end <iso> [--exclude-event <tsid>]
+sola venue set-availability --id <id> --availabilities-json '[...]'
 ```
 
-### `venue list`
+**Venue fields:** `--name`, `--about`, `--website`, `--capacity`, `--require-approval`, `--featured-image-url`, `--start-date`, `--end-date`, `--place-id` (location — via `place create`, not free text), `--tags`, `--amenities`, `--image-urls`, `--track-ids`.
 
-List all venues belonging to a group (`GET /group/get?include_detail=true`, reads the nested `venues` array). No auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--group` | string | Yes | Numeric group ID or handle |
+**Availability:** each entry is `{day_of_week, day, intervals: [["HH:MM","HH:MM"]], role_required}`. `day_of_week` = weekly slot (0=Sunday); `day` = date override and takes priority. Empty `intervals` = closed that slot. No availability rows at all = open 24/7.
 
 ```bash
-sola venue list --group 10
+sola venue set-availability --id 7 --availabilities-json \
+  '[{"day_of_week":1,"intervals":[["09:00","18:00"]]}]'
 ```
 
-### `venue create` / `venue update`
+`conflict` replaces the old `check-availability` — it returns the actual clashing event (or `null`), not a boolean.
 
-Create (`POST /venue/create`) or update (`POST /venue/update`) a venue. Requires auth + manager role.
+---
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `--group` | number | (create only, required) Owning group ID |
-| `--id` | number | (update only, required) Venue ID |
-| `--title` | string | Venue name (required on create) |
-| `--about` | string | Description (Markdown) |
-| `--link` | string | External link (e.g. booking page) |
-| `--capacity` | number | Max people |
-| `--require-approval` | boolean | Bookings require approval |
-| `--visibility` | string | e.g. `all`, `none` |
-| `--start-date` / `--end-date` | string | Availability date range (ISO date) |
-| `--place-id` | number | Place providing location/coordinates |
-| `--tags` | string | Comma-separated tags |
-| `--amenities` | string | Comma-separated amenities |
+## place
+
+Every location-bearing write (events, venues, markers) resolves to a `place_id` through here first. Requires auth for every action.
 
 ```bash
-sola venue create --group 10 --title "Rooftop Space" --capacity 80 --tags "outdoor,rooftop"
-sola venue update --id 7 --capacity 150 --tags "indoor,av-equipment"
+sola place list
+sola place get --id <id>
+sola place search --query "Marina Bay"
+sola place create --name <text> [--address <text>] [--latitude <n>] [--longitude <n>] [--description <text>]
 ```
 
-### `venue remove`
+`create` is find-or-create by name — calling it again with the same name returns the existing place instead of erroring.
 
-Remove (soft-delete) a venue (`POST /venue/remove`). Requires auth + manager role.
+---
+
+## track
+
+Event programs/series within a group. Reads are public; writes require auth + manager role.
 
 ```bash
-sola venue remove --id 7
+sola track list [--group <tsid-or-slug>]
+sola track get --id <id>
+sola track create --group <tsid> --title <text> [--description] [--image-url] [--is-private] [--start-date] [--end-date] [--manager-ids <csv>]
+sola track update --id <id> [same fields]
+sola track remove --id <id>
 ```
 
-### `venue check-availability`
-
-Check whether a venue is free for a time window (`POST /venue/check_availability`). No auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--id` | number | Yes | Numeric venue ID |
-| `--start` / `--end` | string | Yes | ISO 8601 datetimes |
-| `--timezone` | string | No | IANA timezone for interpreting the times |
-
-```bash
-sola venue check-availability --id 7 \
-  --start "2025-06-15T09:00:00" --end "2025-06-15T11:00:00" --timezone Asia/Singapore
-```
+`name` (the unique slug) auto-generates from `--title` if omitted. `--manager-ids` replaces the track's admin set — omit it on update to leave admins untouched.
 
 ---
 
 ## ticket
 
-RSVP, manage, and look up tickets for events. `rsvp` and `cancel` require auth.
-
-### `ticket rsvp`
-
-RSVP to an event using a specific ticket (`POST /ticket/rsvp`). Requires auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--event` | number | Yes | Numeric event ID |
-| `--ticket` | number | Yes | Numeric ticket ID |
-| `--payment-method` | number | No | Payment method ID (paid tickets) |
-| `--coupon` | string | No | Coupon code |
-| `--message` | string | No | Message for approval-required tickets |
+`list-types`, `check-coupon`, and `coupon-price` are public; everything else requires auth. Stripe checkout itself (client secret / webhook) isn't exposed — a CLI can't drive a browser payment element.
 
 ```bash
-sola ticket rsvp --event 42 --ticket 7
+sola ticket list-types --group <tsid-or-slug>
+sola ticket list --event <tsid>
+sola ticket create --event <tsid> --title <text> [--content] [--quantity] [--status] [--ticket-type] [--need-approval] [--check-badge-class] [--end-time <iso>] [--start-date] [--end-date] [--payment-methods-json '[...]']
+sola ticket update --event <tsid> --id <id> [same fields]
+sola ticket remove --event <tsid> --id <id>                       # destroyed if unsold, retired (inactive) if sold
+sola ticket rsvp --event <tsid> --ticket <id> [--payment-method <id>] [--chain <name>] [--coupon <code>] [--message <text>] [--answers-json '[...]']
+sola ticket verify-payment --ticket-item <id> [--txhash <hash>] [--sender-address <addr>]
+sola ticket cancel-unpaid --chain <name> --event <tsid> --order <ticket-item-id>
+sola ticket check-coupon --event <tsid> --code <code>
+sola ticket coupon-price --code <code> --payment-method <id> [--amount <n>]
 ```
 
-### `ticket list-group-types`
+`rsvp`: free tickets confirm immediately; paid ones create a pending order. For crypto payments, follow up with `verify-payment --txhash` once the transaction confirms. `rsvp` is rejected once `--end-time` passes ("ticket sale has ended") — this is a separate field from `--start-date`/`--end-date`, which instead scope a multi-day ticket's *valid days* (paired with the ticket's `days_allowed`, not currently exposed by this CLI).
 
-List ticket types for a group (`GET /ticket/list_group_ticket_types`). No auth.
+`--payment-methods-json` entries: `{chain, kind, token_name, token_address, receiver_address, price, protocol, chains: [...]}`. On `update`, include `id` to edit/keep an entry, `"_destroy": true` to remove it, or omit `id` to add a new one.
 
-```bash
-sola ticket list-group-types --group solaverse
-```
+---
 
-### `ticket check-coupon`
+## discover
 
-Validate a coupon for an event (`GET /ticket/check_coupon`). No auth.
+Both public — expose only public, published content.
 
 ```bash
-sola ticket check-coupon --event 42 --code SAVE20
-```
-
-### `ticket cancel`
-
-Cancel a pending (unpaid) ticket item (`POST /ticket/cancel_unpaid_item`). Requires auth.
-
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `--chain` | string | Yes | Payment chain (`stripe`, `base`, ...) |
-| `--event` | number | Yes | Numeric event ID (product_id) |
-| `--order` | string | Yes | Order number from the ticket_item |
-
-```bash
-sola ticket cancel --chain stripe --event 42 --order 1000042
+sola discover home                    # featured groups, curated popup cities, upcoming public events
+sola discover search --keyword <text> # events + groups + users + badge_classes, min 2 chars
 ```
 
 ---
 
 ## service
 
-Utility services: image uploads and data exports. See `sola service --help`.
-
----
-
-## Workflow: First-Time Setup
-
-```bash
-# 1. Sign in (sends code to email, prompts for it)
-sola auth signin --email user@example.com
-
-# 2. Set your profile handle (one-time)
-sola auth set-handle --handle myhandle
-
-# 3. Confirm who you are
-sola profile me
-
-# 4. Create a group and an event
-sola group create --handle mygroup --nickname "My Group" --timezone Asia/Singapore
-sola event create --group <id> --title "Kickoff" \
-  --start "2025-07-01T10:00:00" --end "2025-07-01T12:00:00" --timezone Asia/Singapore
-
-# 5. Invite people
-sola invite send --group <id> --receivers "alice,bob@example.com" --role member
+### `service upload-image`
+Requires auth. One storage backend (Cloudflare Images) — no `--provider` option anymore. Max 10MB; png/jpeg/gif/webp/svg.
+```
+sola service upload-image --file <path>
 ```
 
 ---
 
-## Output & Error Handling
+## Removed since the sails-era CLI
 
-All commands print JSON to stdout on success; on error a message goes to stderr and the process exits with code `1`. This makes the CLI pipe-friendly:
+- `profile search` / `get-by-email` / `get-by-handle` — soon has one lookup path, `user get --id <tsid-or-username>`, no separate search-by-field endpoints.
+- `auth set-handle` — folded into `user update --name`.
+- `venue check-availability` — replaced by `venue conflict`, which returns the actual clashing event instead of a boolean.
+- Old numeric-ID assumptions — soon's ids are opaque TSID strings (e.g. `"3mloe3vkidht3"`), not integers.
+
+## Output
+
+All commands return **JSON**. List endpoints return `{"data": [...], "meta": {...}}` (Pagy pagination); most others return the record directly.
 
 ```bash
-# Extract event IDs from a list
-sola event list --group 10 --limit 5 | jq '.events[].id'
+sola event list --group solaverse | jq '.data[].id'
+sola venue list --group solaverse | jq '.data[] | {id, name, capacity}'
+```
 
-# Only groups you manage
-sola profile groups --handle myhandle --role owner,manager | jq '.groups[].handle'
+## Error Handling
+
+Errors go to stderr, JSON is not printed, and the process exits `1`.
+
+```bash
+$ sola event get --id doesnotexist
+Error: Not found
+$ echo $?
+1
+```
+
+```bash
+sola event create ... && echo "Success" || echo "Failed"
 ```

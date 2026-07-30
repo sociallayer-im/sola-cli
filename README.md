@@ -1,6 +1,7 @@
 # sola-cli
 
-A minimal Node.js CLI wrapper for the [Sola API](https://api.sola.day) designed for AI agents and developers.
+A minimal Node.js CLI wrapper for the Sola API — `soon`, the Rails backend at
+[api.sola.day](https://api.sola.day) — designed for AI agents and developers.
 
 Perfect for:
 - Scripting event/venue management workflows
@@ -26,7 +27,7 @@ node bin/sola.js --help
 
 - **Node.js >= 18.0.0** (for native `fetch`)
 - **One dependency**: `yargs` for CLI argument parsing
-- **Network access** to `https://api.sola.day`
+- **Network access** to `https://api.sola.day` (or a local `soon` dev server, see below)
 
 ## Configuration
 
@@ -40,6 +41,13 @@ Auth tokens are stored in `~/.sola/config.json`:
 
 This file is created automatically after signing in with `sola auth signin`.
 
+**Pointing at a local `soon` instance** (e.g. `bin/dev` on `:3000`, from the
+`Procfile.dev` setup in the monorepo root):
+
+```bash
+SOLA_API_URL=http://localhost:3000 sola group get --id solaverse
+```
+
 ## Quick Start
 
 ### 1. Sign in
@@ -47,158 +55,64 @@ This file is created automatically after signing in with `sola auth signin`.
 **Interactive mode** (default):
 ```bash
 node bin/sola.js auth signin --email your@email.com
-# Sends code to email, then prompts for it
-# Saves auth_token to ~/.sola/config.json
+# Sends a one-time code to your email, then prompts for it
+# Saves the JWT to ~/.sola/config.json — new emails sign up automatically
 ```
 
-**Non-interactive mode** (send-only + code):
+**Non-interactive mode** (send-only + code — handy for CI/agents):
 ```bash
-# Step 1: Send code only
 node bin/sola.js auth signin --email your@email.com --send-only
-# Check email for code
-
-# Step 2: Complete signin with code
-node bin/sola.js auth signin --email your@email.com --code 123456
-# Saves auth_token to ~/.sola/config.json
+# Check email for the code
+node bin/sola.js auth signin --email your@email.com --code AB12CD
 ```
 
-### 2. Set your handle (one-time)
+The code is alphanumeric (e.g. `AB12CD`), not numeric.
+
+### 2. Set your username (optional, one-time)
 ```bash
-node bin/sola.js auth set-handle --handle yourhandle
+node bin/sola.js user update --name yourhandle --nickname "Your Name"
 ```
 
 ### 3. Find a group and list events
 ```bash
 node bin/sola.js group get --id solaverse
-node bin/sola.js event list --group 10 --collection upcoming
+node bin/sola.js event list --group solaverse --collection upcoming
 ```
 
 ### 4. Create an event
 ```bash
+node bin/sola.js place create --name "Hotel Trio - Patio" --address "..."
+# → returns a place id, use it below
+
 node bin/sola.js event create \
-  --group 10 \
+  --group solaverse \
   --title "Community Lunch" \
   --start "2026-10-10T12:00:00" \
   --end "2026-10-10T14:00:00" \
   --timezone America/Los_Angeles \
-  --location "Hotel Trio - Patio"
+  --place-id <id from above>
 ```
 
-## Commands
+## Command groups
 
-### Authentication
+| Group | Covers |
+|---|---|
+| `auth` | signin, whoami |
+| `user` | get/me/update/groups — soon's `User` model (sails called this "profile") |
+| `group` | get/list/create/update/freeze/send-email/members/add-member/set-role/remove-membership/leave |
+| `invite` | send/list/pending/show/accept/cancel/revoke/request/accept-request/send-with-code/accept-with-code |
+| `event` | get/list/pending-approval/create/update/cancel/approve |
+| `participant` | list/join/update/cancel/approve/reject/check-in — event participation (was folded into `event` before) |
+| `venue` | get/list/create/update/remove/conflict/set-availability |
+| `place` | get/search/create — venue/event locations resolve through a Place |
+| `track` | list/get/create/update/remove — event programs/series within a group |
+| `ticket` | list-types/list/create/update/remove/rsvp/verify-payment/cancel-unpaid/check-coupon/coupon-price |
+| `discover` | home/search — public homepage payload + global search |
+| `service` | upload-image |
 
-**Sign in with email** — Supports four modes (interactive, send-only, with-code, piped)
-
-```bash
-# Interactive mode (prompts for code)
-node bin/sola.js auth signin --email user@example.com
-
-# Non-interactive: send code only (step 1)
-node bin/sola.js auth signin --email user@example.com --send-only
-
-# Non-interactive: complete with code (step 2)
-node bin/sola.js auth signin --email user@example.com --code 123456
-```
-
-Auth token is automatically saved to `~/.sola/config.json` and used for all subsequent authenticated operations. See **[COMMANDS.md](./COMMANDS.md#auth-signin)** for full details on all four modes.
-
-**Set profile handle** (unique username, required after first sign-in)
-
-```bash
-node bin/sola.js auth set-handle --handle myhandle
-```
-
-### Profile
-
-**Get profile by email**
-
-```bash
-node bin/sola.js profile get-by-email --email user@example.com
-```
-
-**Get profile by handle**
-
-```bash
-node bin/sola.js profile get-by-handle --handle myhandle
-```
-
-### Events
-
-**Get a single event**
-
-```bash
-node bin/sola.js event get --id 123
-```
-
-**List events** (requires auth for private events)
-
-```bash
-node bin/sola.js event list --group 123
-node bin/sola.js event list --group 123 --collection upcoming --limit 20
-node bin/sola.js event list --group 123 --tags "tag1,tag2" --start-date 2025-01-15
-```
-
-**Create an event** (requires auth)
-
-```bash
-node bin/sola.js event create \
-  --group 123 \
-  --title "My Event" \
-  --start "2025-01-15T10:00:00" \
-  --end "2025-01-15T12:00:00" \
-  --location "Singapore" \
-  --timezone "Asia/Singapore"
-```
-
-**Update an event** (requires auth)
-
-```bash
-node bin/sola.js event update --id 123 --title "Updated Title"
-```
-
-### Venues
-
-**Get a venue**
-
-```bash
-node bin/sola.js venue get --id 123
-```
-
-**List venues** (requires auth)
-
-```bash
-node bin/sola.js venue list --group 123
-```
-
-**Create a venue** (requires auth)
-
-```bash
-node bin/sola.js venue create \
-  --group 123 \
-  --title "My Venue" \
-  --location "123 Main St" \
-  --capacity 100
-```
-
-**Update a venue** (requires auth)
-
-```bash
-node bin/sola.js venue update --id 123 --title "Updated Venue" --capacity 150
-```
-
-### Groups
-
-**Get a group by ID or handle**
-
-```bash
-node bin/sola.js group get --id 123
-node bin/sola.js group get --id solaverse
-```
+Every command supports `--help` for its full parameter list.
 
 ## Help
-
-View help for any command:
 
 ```bash
 node bin/sola.js --help
@@ -208,115 +122,57 @@ node bin/sola.js event create --help
 
 ## Architecture
 
-Clean, modular design with minimal dependencies:
+- **`lib/api.js`** — the one `request()` transport, plus every endpoint
+  function grouped by domain. `auth` mode per call mirrors soon's own
+  three-tier model: `true` (required, fails fast locally if not signed in),
+  `'optional'` (personalizes if a token is present, else anonymous), or
+  omitted (never sends a token).
+- **`lib/config.js`** — reads/writes the JWT to `~/.sola/config.json`.
+- **`lib/utils.js`** — `handleError()`, `requireAuth()`, query-string building,
+  comma-list and JSON-flag parsing helpers shared by the command modules.
+- **`lib/commands/*.js`** — one yargs command builder per domain.
+- **`bin/sola.js`** — registers every command module with yargs.
 
-- **`lib/api.js`** — Central `request()` helper:
-  - Dispatches GET/POST with correct parameter handling
-  - Injects `auth_token` as query parameter for authenticated requests
-  - Normalizes error responses across all endpoints
-  
-- **`lib/config.js`** — Token persistence:
-  - Reads/writes auth tokens to `~/.sola/config.json`
-  - Silently returns `null` if no token (allows public endpoints)
-  
-- **`lib/utils.js`** — Shared utilities:
-  - `handleError()` wrapper eliminates try/catch duplication
-  
-- **`lib/commands/*.js`** — Command modules (5 files):
-  - Each module is a self-contained yargs command builder
-  - Imports only the API functions it needs
-  - Consistent error handling and output format
-  
-- **`bin/sola.js`** — Entry point:
-  - Simple yargs setup registering all command modules
-  - Enables `--help` for all commands automatically
+## API contract
 
-## Design Decisions
+- Base path: `https://api.sola.day/api/v1/...` (soon namespaces everything
+  under `/api/v1`, unlike the retired sails backend).
+- Auth: `Authorization: Bearer <jwt>` header — **not** a query/body param.
+- Errors: real HTTP status codes with a `{"error": "..."}` body.
+- IDs are TSIDs (opaque strings like `"3mloe3vkidht3"`) for most resources —
+  don't assume they're numeric.
+- Group/user "handles" live in the `name` field (not `handle`); display names
+  are `nickname`.
+- Membership writes (role changes, removal) are addressed by **membership id**,
+  not user id — get it from `group members` first.
+- A Group *is* a popup city (same table) — `start_date`/`end_date`/`location`
+  double as popup-city fields.
+- Auth requirements vary by resource and aren't always what you'd guess:
+  groups/events/tracks have public read paths, but venues, places, and
+  memberships-invites require auth for every action, including reads. Each
+  command's `--help` states its own requirement.
 
-| Decision | Reason |
-|----------|--------|
-| Native `fetch` (no `node-fetch`) | Node 18+ has built-in fetch; no extra dependencies |
-| One `request()` helper | Single point for auth injection, error handling, and base URL |
-| `~/.sola/config.json` | Standard location for CLI tools; auto-created on first sign-in |
-| `readline` for code prompt | Zero extra deps for interactive prompts; `--send-only` flag for non-interactive |
-| `auth_token` as query param | API requires tokens in query string (both GET and POST) |
-| Venue params nested under `venue` key | Matches Sola API's Rails strong parameters requirement |
-| `--send-only` flag | Enables fully non-interactive workflows (step 1) with separate `--code` step (step 2) |
-| Error handling wrapper | Centralized `handleError()` reduces duplication across commands |
-| ESM (`"type": "module"`) | Top-level `await` support; modern Node convention |
-
-## API Endpoint Reference
-
-All endpoints use `https://api.sola.day` as the base URL (no `/api/` prefix).
-
-**Authentication:** Authenticated endpoints receive `auth_token` as a query parameter (automatically injected by sola-cli).
-
-### Authentication
-- `POST /service/send_email` — Send 6-digit verification code
-- `POST /profile/signin_with_email` — Sign in with email + code
-- `POST /profile/create` — Set handle after sign-in
-
-### Profile
-- `GET /profile/get_by_email?email=` — Get profile by email
-- `GET /profile/get_by_handle?handle=` — Get profile by handle
-
-### Events
-- `GET /event/get?id=` — Get event by ID
-- `GET /event/list?group_id=` — List group events (supports filtering)
-- `POST /event/create` — Create event (requires auth)
-- `POST /event/update` — Update event (requires auth)
-
-### Venues
-- `GET /venue/get?id=` — Get venue by ID
-- `GET /venue/list?group_id=` — List group venues (requires auth)
-- `POST /venue/create` — Create venue (requires auth)
-- `POST /venue/update` — Update venue (requires auth)
-
-### Groups
-- `GET /group/get?group_id=` — Get group by numeric ID or handle
-
-See **[COMMANDS.md](./COMMANDS.md)** for full parameter documentation and additional endpoints (badges, voting, points, etc.).
+See [COMMANDS.md](./COMMANDS.md) for full parameter documentation.
 
 ## Output & Scripting
 
-All commands output **JSON** to stdout on success, making them pipe-friendly and easy to integrate into scripts.
+All commands print **JSON** to stdout on success — pipe-friendly.
 
-**Two-step signin** (perfect for CI/CD or automated workflows):
 ```bash
-# Step 1: Send verification code
-node bin/sola.js auth signin --email user@example.com --send-only
+# Extract event ids
+node bin/sola.js event list --group solaverse --limit 5 | jq '.data[].id'
 
-# (Check email, copy code)
+# Filter by tag
+node bin/sola.js event list --group solaverse | jq '.data[] | select(.tags | contains(["web3"]))'
 
-# Step 2: Complete signin
-node bin/sola.js auth signin --email user@example.com --code 482910
+# Bulk venue lookup
+node bin/sola.js venue list --group solaverse | jq '.data[] | {id, name, capacity}'
 ```
 
-**Extract event IDs:**
+On error, the message goes to stderr and the process exits `1`:
 ```bash
-node bin/sola.js event list --group 10 --limit 5 | jq '.events[].id'
-```
-
-**Filter events by tag:**
-```bash
-node bin/sola.js event list --group 10 | jq '.events[] | select(.tags | contains(["web3"]))'
-```
-
-**Bulk venue lookup:**
-```bash
-node bin/sola.js venue list --group 10 | jq '.venues[] | {id, title, capacity}'
-```
-
-**Create event and check success:**
-```bash
-node bin/sola.js event create ... && echo "✓ Event created"
-```
-
-**On error**, messages go to stderr and process exits with code `1`:
-```bash
-$ node bin/sola.js event get --id 999999
-Error: Couldn't find Event with 'id'=999999
-
+$ node bin/sola.js event get --id doesnotexist
+Error: Not found
 $ echo $?
 1
 ```
@@ -324,47 +180,17 @@ $ echo $?
 ## Troubleshooting
 
 **"Not authenticated" error:**
-- Run `sola auth signin --email your@email.com` first
-- Check `~/.sola/config.json` exists and contains a valid token
+- Run `sola auth signin --email your@email.com` first.
+- Check `~/.sola/config.json` exists and contains a token.
 
-**"Invalid group ID" error:**
-- Use numeric group ID (e.g., `--group 10`) not handle name
-- Use `sola group get --id solaverse` to find the numeric ID
+**"Not found" on a group/event/venue you know exists:**
+- Some resources (venues, places, invites) require auth for *every* action,
+  including reads — a missing/expired token can look like a 404 depending on
+  the endpoint's own error handling. Sign in and retry.
 
-**"404 Not Found" error:**
-- Verify the resource exists (event ID, venue ID, etc.)
-- Some operations require specific permissions (e.g., venue listing requires auth)
-
-**Commands hanging or very slow:**
-- Check network connectivity to `https://api.sola.day`
-- The API may be experiencing high load
-
-## Development
-
-**Run tests/verify all commands:**
-
-```bash
-# Test help
-node bin/sola.js --help
-
-# Test sign-in flow (interactive)
-node bin/sola.js auth signin --email test@example.com
-
-# Test read commands
-node bin/sola.js group get --id solaverse
-node bin/sola.js event list --group 1 --limit 5
-
-# Test scripting
-node bin/sola.js event list --group 3409 | jq '.events | length'
-```
-
-## Full Documentation
-
-See **[COMMANDS.md](./COMMANDS.md)** for comprehensive documentation including:
-- **All signin modes** — Interactive, send-only, with-code, and piped workflows
-- **All command parameters** — Complete parameter tables and descriptions for all 14+ commands
-- **Advanced features** — Event filtering (dates, collections, tags), venue management, badges, voting, points
-- **Real-world examples** — Workflow examples for common operations
+**Verification code rejected:**
+- The code is a 6-character alphanumeric string, case-insensitive, not a
+  6-digit number — double-check you copied it exactly.
 
 ## License
 
