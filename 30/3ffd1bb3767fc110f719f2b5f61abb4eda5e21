@@ -1,0 +1,37 @@
+lib/commands/group.js
+  s_e9ed806a3d225c::t_6672bfbd8aeb42 6
+  s_e9ed806a3d225c::t_88bab8a2ed8ff4 12-13
+  s_e9ed806a3d225c::t_e51acf0a58cc5a 121-139
+  s_e9ed806a3d225c::t_82bf80db0335ff 120
+COMMANDS.md
+  s_e9ed806a3d225c::t_7fcf2a934cfc2c 190
+  s_e9ed806a3d225c::t_44fff8058bbfe7 359-360
+  s_e9ed806a3d225c::t_01df3601c9213c 178
+  s_e9ed806a3d225c::t_0f2491c9e4342a 345
+  s_e9ed806a3d225c::t_6c0aa59c45dcc5 103-108
+lib/commands/invite.js
+  s_e9ed806a3d225c::t_aaf9ae9ba901f1 25
+  s_e9ed806a3d225c::t_a60975f7ba42ff 31
+lib/commands/ticket.js
+  s_e9ed806a3d225c::t_b99db8d2c6d886 90-93
+  s_e9ed806a3d225c::t_8858b47a066693 5
+  s_e9ed806a3d225c::t_a903cc415013b9 62
+  s_e9ed806a3d225c::t_da199897ba0bc0 44
+  s_e9ed806a3d225c::t_ed3d29c7d4f9f2 80-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "303ffd1bb3767fc110f719f2b5f61abb4eda5e21",
+  "prompts": {},
+  "sessions": {
+    "s_e9ed806a3d225c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "931f6a9c-6836-4bdb-a9b8-4af9de9ee16d",
+        "model": "claude-fable-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
