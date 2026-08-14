@@ -100,6 +100,12 @@ Requires auth + manager role.
 sola group update --id <tsid> [group fields...]
 ```
 
+### `group tags`
+Read-modify-write on `group_tags` — adds/removes only what you name, keeps the rest. The homepage curation tags are platform-admin-only (`pin` → community grid, `top` → popup-city list, `top`+`featured` → carousel); the backend silently strips them from any other caller.
+```
+sola group tags --id <tsid-or-slug> [--add pin,top] [--remove featured]
+```
+
 **Group fields** (create/update):
 
 | Option | Description |
@@ -169,7 +175,7 @@ Every action here requires auth — invites carry PII (`receiver_address`), so t
 
 ```bash
 sola invite list --group <tsid>                                                 # manager
-sola invite send --group <tsid> --receivers "alice,bob@example.com" --role member [--message <text>]
+sola invite send --group <tsid> --receivers "alice,bob@example.com,13800138000" --role member [--message <text>]
 sola invite pending                                                              # invites for your email
 sola invite show --id <id>
 sola invite accept --group <tsid> --id <id>
@@ -181,7 +187,7 @@ sola invite send-with-code --group <tsid> [--role member] [--message <text>]    
 sola invite accept-with-code --group <tsid> --code <code>
 ```
 
-`send` matches receivers against existing users by username/email/wallet — matches are added directly (no invite record); only unmatched email addresses get a real email invite.
+`send` matches receivers against existing users by phone (when the input reads as a +86 number), username, email, or wallet — matches are added directly (no invite record). Unmatched emails get an email invite; unmatched CN phone numbers become **whitelist invites**: no SMS is sent, they never expire, and the group membership lands automatically the moment that number signs in via SMS or is bound to an account. Re-importing a pending phone is idempotent.
 
 ---
 
@@ -336,7 +342,7 @@ sola track remove --id <id>
 ```bash
 sola ticket list-types --group <tsid-or-slug>
 sola ticket list --event <tsid>
-sola ticket create --event <tsid> --title <text> [--content] [--quantity] [--status] [--ticket-type] [--need-approval] [--check-badge-class] [--end-time <iso>] [--start-date] [--end-date] [--payment-methods-json '[...]']
+sola ticket create --event <tsid> --title <text> [--content] [--quantity] [--status] [--ticket-type] [--need-approval] [--check-badge-class] [--check-group-ids <tsid,tsid>] [--end-time <iso>] [--start-date] [--end-date] [--payment-methods-json '[...]']
 sola ticket update --event <tsid> --id <id> [same fields]
 sola ticket remove --event <tsid> --id <id>                       # destroyed if unsold, retired (inactive) if sold
 sola ticket rsvp --event <tsid> --ticket <id> [--payment-method <id>] [--chain <name>] [--coupon <code>] [--message <text>] [--answers-json '[...]']
@@ -349,6 +355,8 @@ sola ticket coupon-price --code <code> --payment-method <id> [--amount <n>]
 `rsvp`: free tickets confirm immediately; paid ones create a pending order. For crypto payments, follow up with `verify-payment --txhash` once the transaction confirms. `rsvp` is rejected once `--end-time` passes ("ticket sale has ended") — this is a separate field from `--start-date`/`--end-date`, which instead scope a multi-day ticket's *valid days* (paired with the ticket's `days_allowed`, not currently exposed by this CLI).
 
 `--payment-methods-json` entries: `{chain, kind, token_name, token_address, receiver_address, price, protocol, chains: [...]}`. On `update`, include `id` to edit/keep an entry, `"_destroy": true` to remove it, or omit `id` to add a new one.
+
+`--check-group-ids` makes a members-only ticket: only members of ANY listed group can claim it (403 otherwise). Combine with no payment methods for a free whitelist ticket — import the whitelist with `invite send` first. On `update`, pass `--check-group-ids ""` to clear the gate.
 
 ---
 
