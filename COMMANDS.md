@@ -5,7 +5,7 @@ CLI wrapper for the Sola API (`soon`, the current Rails backend). All commands o
 **Base URL:** `https://api.sola.day/api/v1` (override with `SOLA_API_URL=http://localhost:3000` for a local `soon`)
 **Auth:** a JWT read from `~/.sola/config.json`, sent as `Authorization: Bearer <token>`, for any command marked "requires auth".
 
-Commands are grouped by domain: `auth`, `user`, `group`, `invite`, `event`, `participant`, `venue`, `place`, `track`, `ticket`, `discover`, `service`.
+Commands are grouped by domain — see the full index at the bottom (33 command groups).
 
 ---
 
@@ -411,3 +411,365 @@ $ echo $?
 ```bash
 sola event create ... && echo "Success" || echo "Failed"
 ```
+
+---
+
+## Full command index (generated from `--help`)
+
+One line per subcommand; run `sola <command> <sub> --help` for options. Sections above predate the soon modules added after 2026-08 (forms, teams, discussion, polls, hackathons, badges, vouchers, OAuth, payments) — for those this index plus `--help` is authoritative.
+
+
+### auth
+
+- `sola auth signin` — Sign in with an emailed one-time code
+- `sola auth whoami` — Show the currently authenticated user
+- `sola auth signin-phone` — Sign in with an SMS one-time code
+- `sola auth bind-email` — Attach an email to the signed-in account (for accounts created by wallet, WeChat or phone)
+- `sola auth bind-phone` — Attach a mobile number to the signed-in account
+
+### user
+
+- `sola user me` — Fetch the currently authenticated user
+- `sola user get` — Fetch a user by TSID or username
+- `sola user update` — Update your own user record
+- `sola user groups` — List the groups a user belongs to
+- `sola user merge` — PLATFORM ADMIN ONLY, IRREVERSIBLE
+
+### group
+
+- `sola group get` — Fetch a group by TSID or its unique slug (`name`)
+- `sola group list` — List the groups you belong to (paginated: { data, meta })
+- `sola group directory` — List ALL active groups (public, paginated: { data, meta }) with member/event counts and tags
+- `sola group calendar` — Print the public iCalendar (.ics) subscription URL for a group's published events
+- `sola group create` — Create a new group
+- `sola group update` — Update fields on an existing group
+- `sola group tags` — Add/remove entries in group_tags without touching the rest
+- `sola group freeze` — Deactivate a group without deleting it
+- `sola group send-email` — Broadcast an email to every active member
+- `sola group members` — List a group's memberships (paginated: { data, meta }), each with a membership id (needed by set-role/remove-membership) and role
+- `sola group add-member` — Directly add a user to the group with a given role, bypassing invites
+- `sola group set-role` — Change an existing member's role and/or their admin-mail preference
+- `sola group remove-membership` — Remove a member from the group by membership id
+- `sola group leave` — Leave a group yourself — a convenience that looks up your own membership id and removes it
+
+### invite
+
+- `sola invite list` — List all invites for a group (paginated: { data, meta }; pending, accepted, cancelled, whitelist, ...)
+- `sola invite send` — Invite people to a group by username, email, wallet address, or CN phone number
+- `sola invite pending` — List invites pending for your own email address
+- `sola invite show` — Fetch a single invite by id (the invite-preview page)
+- `sola invite accept` — Accept an email invite addressed to you
+- `sola invite cancel` — Cancel an invite (sets status to cancelled)
+- `sola invite revoke` — Revoke an invite (sets status to revoked)
+- `sola invite request` — Request to join a group yourself as a member
+- `sola invite accept-request` — Approve a pending self-service join request
+- `sola invite send-with-code` — Generate a reusable 8-character invite code (30-day expiry) — anyone with the code can join via `invite accept-with-code`
+- `sola invite accept-with-code` — Join a group using a reusable invite code
+
+### event
+
+- `sola event get` — Fetch a single event by TSID (or a legacy sails id, during the migration window)
+- `sola event list` — Browse/search events
+- `sola event pending-approval` — List events awaiting review across groups you manage (the manager's approval inbox)
+- `sola event create` — Create a new event in a group
+- `sola event update` — Update fields on an existing event
+- `sola event cancel` — Cancel an event (flips status to cancelled and emails attendees a calendar cancellation)
+- `sola event approve` — Publish a pending event (one submitted where publishing requires approval)
+- `sola event roles` — List an event's roles (co-hosts, speakers, judges, ...)
+- `sola event add-role` — Add a role to an event
+- `sola event update-role` — Update an event role
+- `sola event remove-role` — Remove a role from an event
+- `sola event calendar-url` — Print the public .ics feed URL for an event (no auth; only publicly visible, non-draft events resolve)
+
+### participant
+
+- `sola participant list` — List an event's active (non-cancelled) participants, each with a participant record id (needed by update/cancel/approve/reject)
+- `sola participant join` — RSVP / join an event directly (no ticket)
+- `sola participant update` — Change your own participation status (e.g
+- `sola participant cancel` — Cancel your own RSVP — a convenience that looks up your own participant record and withdraws it (soft delete; also cancels unpaid orders)
+- `sola participant approve` — Approve a pending (approval-required) participant
+- `sola participant reject` — Decline a pending participant
+- `sola participant check-in` — Stamp an attendee as checked in at the door
+
+### venue
+
+- `sola venue get` — Fetch a venue by id, including its availability rules
+- `sola venue list` — List non-archived venues, optionally scoped to a group
+- `sola venue create` — Create a new venue for a group
+- `sola venue update` — Update fields on an existing venue
+- `sola venue remove` — Archive (soft-delete) a venue — existing events keep referencing it
+- `sola venue conflict` — Find the first event that would clash with a given time window — the check an event editor runs before submitting
+- `sola venue set-availability` — Replace a venue's whole availability set
+
+### place
+
+- `sola place list` — List places (paginated)
+- `sola place get` — Fetch a place by id
+- `sola place search` — Typeahead search over place name/address (case-insensitive substring, max 20 results)
+- `sola place create` — Find-or-create a place by name
+
+### track
+
+- `sola track list` — List tracks, optionally scoped to a group
+- `sola track get` — Fetch a single track by id, including its admin roles
+- `sola track create` — Create a new track in a group
+- `sola track update` — Update fields on an existing track
+- `sola track remove` — Delete a track
+
+### ticket
+
+- `sola ticket list-types` — List all ticket types defined for a group (across all its events)
+- `sola ticket list` — List an event's ticket types (with payment methods)
+- `sola ticket create` — Create a ticket type for an event
+- `sola ticket update` — Update a ticket type
+- `sola ticket remove` — Remove a ticket type — destroyed outright if unsold, retired (status: inactive) if any tickets have already been sold against it
+- `sola ticket rsvp` — RSVP to an event using a specific ticket
+- `sola ticket verify-payment` — Confirm a pending order by proving payment (Stripe/WeChat are checked server-side; crypto needs --txhash)
+- `sola ticket cancel-unpaid` — Cancel your own pending (unpaid) order, releasing the reserved ticket quantity
+- `sola ticket check-coupon` — Check whether a coupon code exists for an event
+- `sola ticket coupon-price` — Preview the discounted price a coupon code would give for a payment method
+- `sola ticket checkout-session` — Get the Stripe-hosted checkout page for a pending card order (re-serves the same open session)
+- `sola ticket wechat-prepay` — Place the WeChat Pay JSAPI order for a pending WeChat order and print { pay_params } (meant for WeixinJSBridge inside WeChat — of limited use from a terminal)
+- `sola ticket refund` — Refund a paid card/WeChat order (organizer only; crypto orders are not refundable here)
+- `sola ticket set-payment-status` — Server-to-server confirm of a CRYPTO order, authenticated by the deployment's shared NEXT_TOKEN secret instead of a user token (card/WeChat orders are refused — they confirm via webhook)
+- `sola ticket add-group-item` — Grant a group ticket (and thus membership) to an email address
+- `sola ticket orders` — List an event's orders (ticket_items)
+- `sola ticket order-summary` — Revenue rollup for an event, per payment rail and currency (WeChat adds fee/withdrawable figures)
+- `sola ticket coupons` — List an event's (non-removed) coupons
+- `sola ticket coupon` — Fetch one coupon by id
+- `sola ticket coupon-code` — Print just { coupon_id, code } for a coupon id
+- `sola ticket coupon-usage` — List the orders that redeemed a coupon
+- `sola ticket set-coupons` — Create, edit, or remove an event's coupons in one batch
+
+### discover
+
+- `sola discover home` — Fetch the homepage payload: `groups` (featured), `communities` (pinned, max 40), `popup_cities` and `events` (next public)
+- `sola discover search` — Global keyword search across events, groups, users, and badge classes
+
+### service
+
+- `sola service upload-image` — Upload an image file (png/jpeg/gif/webp/svg, max 10MB) to Cloudflare Images
+
+### form
+
+- `sola form event-get` — Get an event's registration form
+- `sola form event-save` — Create or replace an event's registration form (also turns on require-approval)
+- `sola form event-clear` — Detach the registration form from an event
+- `sola form event-submission` — Read one person's application answers
+- `sola form event-my-submission` — Read my own application answers for an event
+- `sola form event-update-submission` — Edit my pending application answers
+- `sola form event-submissions` — List all application submissions for an event
+- `sola form list` — List forms I created (including event registration forms)
+- `sola form my-submissions` — List the forms I have filled in, with my answers
+- `sola form get` — Get a standalone form by slug or id
+- `sola form create` — Create a standalone form
+- `sola form update` — Update a form
+- `sola form remove` — Delete a form
+- `sola form submissions` — List a form's submissions (paginated)
+- `sola form my-submission` — Read my answers to a standalone form
+- `sola form submit` — Submit (or re-submit, which edits) my answers to a standalone form
+
+### team
+
+- `sola team list` — List a group's teams
+- `sola team create` — Create a team in a group
+- `sola team update` — Update a team
+- `sola team remove` — Delete a team (members are un-grouped, not deleted)
+- `sola team members` — List a team's members
+- `sola team add-member` — Add a user to a team
+- `sola team remove-member` — Remove a user from a team
+
+### marker
+
+- `sola marker list` — List markers
+- `sola marker get` — Get a marker by id
+- `sola marker create` — Pin a marker on a group map
+- `sola marker update` — Update a marker (group cannot be changed)
+- `sola marker remove` — Delete a marker
+
+### event-role
+
+- `sola event-role list` — List an event's roles
+- `sola event-role create` — Add a role to an event
+- `sola event-role update` — Update a role
+- `sola event-role remove` — Remove a role from an event
+
+### recurring
+
+- `sola recurring show` — Show a series and its (visible) occurrences
+- `sola recurring create` — Create a series with one event per occurrence, atomically
+- `sola recurring update` — Update occurrences in a series
+- `sola recurring cancel` — Soft-cancel occurrences (status becomes cancelled; nothing is deleted)
+
+### comment
+
+- `sola comment list` — List comments of one type, newest first
+- `sola comment create` — Post a comment
+- `sola comment star` — Star an item
+- `sola comment unstar` — Remove my star from an item
+- `sola comment remove` — Soft-remove my own comment
+
+### activity
+
+- `sola activity list` — List activities addressed to me, newest first
+- `sola activity mark-read` — Mark activities as read
+
+### category
+
+- `sola category list` — List the boards the caller may see in a group
+- `sola category create` — Create a board in a group
+- `sola category update` — Update a board
+- `sola category remove` — Delete an EMPTY board (422 if it ever had topics; archive instead)
+
+### topic
+
+- `sola topic list` — List topics in a group, newest-activity first (pinned on top)
+- `sola topic get` — Fetch one topic with its content
+- `sola topic create` — Create a topic in a board
+- `sola topic update` — Update a topic (author or manager)
+- `sola topic remove` — Soft-delete a topic (author or manager)
+- `sola topic pin` — Pin a topic to the top of its list (manager)
+- `sola topic unpin` — Unpin a topic (manager)
+- `sola topic close` — Close a topic to new replies
+- `sola topic open` — Reopen a closed topic
+- `sola topic flag` — Flag (hide) a topic for review
+- `sola topic unflag` — Remove a topic flag
+- `sola topic restore` — Restore a soft-deleted topic
+
+### reply
+
+- `sola reply list` — List a topic's replies in chronological order
+- `sola reply create` — Post a reply to a topic
+- `sola reply update` — Edit a reply (author or manager)
+- `sola reply remove` — Soft-delete a reply (author or manager)
+- `sola reply flag` — Flag (hide) a reply for review
+- `sola reply unflag` — Remove a reply flag
+- `sola reply restore` — Restore a soft-deleted reply
+
+### poll
+
+- `sola poll list` — List polls in a group, newest first
+- `sola poll get` — Fetch one poll with options and (if permitted) results
+- `sola poll create` — Create a poll in a group
+- `sola poll update` — Update a poll (author or manager)
+- `sola poll remove` — Soft-delete a poll
+- `sola poll vote` — Cast or replace your vote
+- `sola poll retract` — Withdraw your vote
+- `sola poll close` — Close a poll now (author or manager)
+- `sola poll flag` — Flag (hide) a poll for review
+- `sola poll unflag` — Remove a poll flag
+- `sola poll restore` — Restore a soft-deleted poll
+- `sola poll export` — Print results as CSV to stdout (author/manager)
+
+### hackathon
+
+- `sola hackathon list` — List hackathons in a group, newest first
+- `sola hackathon get` — Fetch one hackathon with tracks and permissions
+- `sola hackathon create` — Create a hackathon (starts as draft)
+- `sola hackathon update` — Update a hackathon
+- `sola hackathon remove` — Soft-delete a hackathon
+- `sola hackathon publish` — Publish a draft hackathon
+- `sola hackathon unpublish` — Return a hackathon to draft
+- `sola hackathon tracks` — Replace the hackathon's tracks
+- `sola hackathon judges-team` — Snapshot the registration event's judges into a private group team (idempotent; re-running diffs the roster)
+- `sola hackathon flag` — Flag (hide) a hackathon for review
+- `sola hackathon unflag` — Remove a hackathon flag
+- `sola hackathon restore` — Restore a soft-deleted hackathon
+- `sola hackathon export` — Print the projects CSV to stdout (organisers only)
+
+### hackathon-project
+
+- `sola hackathon-project list` — List projects of a hackathon
+- `sola hackathon-project get` — Fetch one project
+- `sola hackathon-project create` — Create a draft project; you become its owner
+- `sola hackathon-project update` — Update a project (owner/members/manager per policy)
+- `sola hackathon-project remove` — Hard-delete a DRAFT project (irreversible; submitted projects must be unsubmitted first)
+- `sola hackathon-project submit` — Submit the project (owner only, while submissions are open)
+- `sola hackathon-project unsubmit` — Withdraw a submitted project back to draft
+- `sola hackathon-project review` — Approve or reject a submitted project (organisers)
+- `sola hackathon-project award` — Set (or clear, with --clear) a project's award label (organisers)
+- `sola hackathon-project star` — Star a project
+- `sola hackathon-project unstar` — Remove your star
+- `sola hackathon-project leave` — Leave a project you are a member of
+- `sola hackathon-project add-member` — Add a teammate (owner only; no self-join; not after submission)
+- `sola hackathon-project remove-member` — Remove a teammate (owner only; the owner themself cannot be removed — transfer first)
+- `sola hackathon-project transfer` — Transfer ownership to an existing member (owner only)
+- `sola hackathon-project flag` — Flag (hide) a project for review
+- `sola hackathon-project unflag` — Remove a project flag
+
+### badge-class
+
+- `sola badge-class list` — List badge classes, paginated
+- `sola badge-class get` — Fetch a badge class by id
+- `sola badge-class by-user` — Badge classes of every group a user is a member of
+- `sola badge-class create` — Create a badge class
+- `sola badge-class invites` — Unexpired group invites for a badge class's group (exposes invitee emails)
+
+### badge
+
+- `sola badge list` — List minted badges, paginated
+- `sola badge get` — Fetch a badge by id
+- `sola badge update` — Set how a badge is displayed on your profile
+- `sola badge transfer` — Give a badge to another user by handle
+- `sola badge burn` — Burn a minted badge
+- `sola badge swap-code` — Generate a swap token for one of your badges to hand to another holder
+- `sola badge swap` — Swap one of your badges for the badge behind a swap token
+
+### voucher
+
+- `sola voucher list` — List active (unexpired, not exhausted) vouchers, paginated
+- `sola voucher get` — Fetch a voucher with its badges
+- `sola voucher create` — Mint a code voucher redeemable by anyone holding its code
+- `sola voucher send-badge` — Send the badge to existing users
+- `sola voucher send-badge-by-address` — Send the badge to wallet addresses
+- `sola voucher send-badge-by-email` — Send the badge to emails (or 0x addresses)
+- `sola voucher code` — Reveal a voucher's redeem code
+- `sola voucher revoke` — Revoke a voucher (sets its counter to 0)
+- `sola voucher use` — Redeem a voucher into a badge for the current user
+- `sola voucher reject-badge` — Decline a badge voucher addressed to you
+
+### remember
+
+- `sola remember meta` — Show the remember badge class id and joiner threshold
+- `sola remember related-groups` — Popup-city groups each user attended events in
+- `sola remember create` — Create a remember voucher (auto-joins you)
+- `sola remember get` — Show who has joined and whether it has been minted
+- `sola remember join` — Join a remember (idempotent)
+- `sola remember cancel` — Leave a remember before it is minted
+- `sola remember mint` — Mint one badge per joiner
+
+### oauth
+
+- `sola oauth apps` — List your registered OAuth applications
+- `sola oauth app-get` — Fetch one of your applications
+- `sola oauth app-create` — Register an application
+- `sola oauth app-update` — Update one of your applications
+- `sola oauth app-delete` — Delete an application and end every session it holds
+- `sola oauth app-rotate-secret` — Issue a new client secret (shown once)
+- `sola oauth grants` — List the apps you have granted access to
+- `sola oauth grant-revoke` — Revoke a grant and the tokens it produced
+- `sola oauth admin-apps` — Platform admin only (users.admin): list every application, paginated
+- `sola oauth admin-app-get` — Platform admin only: fetch any application (admin view)
+- `sola oauth admin-app-review` — Platform admin only: mark an application as reviewed (informational, shown on the consent screen)
+- `sola oauth admin-app-disable` — Platform admin only: disable an application AND burn its live tokens
+
+### stripe
+
+- `sola stripe list` — List your Stripe settings (masked keys)
+- `sola stripe for-event` — The event OWNER's active Stripe settings (masked), for picking one on a ticket
+- `sola stripe create` — Add a Stripe key
+- `sola stripe update` — Rename a setting or rotate its key
+- `sola stripe delete` — Delete a setting
+
+### withdrawal
+
+- `sola withdrawal groups` — Groups you manage, with available and withdrawn amounts
+- `sola withdrawal balance` — Available and withdrawn amounts for one group
+- `sola withdrawal list` — Every withdrawal requested against a group's pool
+- `sola withdrawal create` — Request withdrawal of a group's ENTIRE available balance (no partial amounts) to a bank account
+- `sola withdrawal admin-list` — Platform admin only: every withdrawal, paginated
+- `sola withdrawal admin-update` — Platform admin only: settle or reject a PENDING withdrawal after paying it out by hand
+
+### upload
+
+- `sola upload file` — Upload a document (pdf, txt, csv, zip, Office files, or png/jpg/gif/webp)

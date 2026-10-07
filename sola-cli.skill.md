@@ -242,3 +242,7 @@ Integrate with shell workflows using exit codes:
 ```bash
 sola event create ... && echo "Success" || echo "Failed"
 ```
+
+## Newer command groups (soon modules added after Aug 2026)
+
+`form`, `team`, `marker`, `event-role`, `recurring`, `comment`, `activity`, `category`/`topic`/`reply` (discussion), `poll`, `hackathon`, `hackathon-project`, `badge-class`, `badge`, `voucher`, `remember`, `oauth`, `stripe`, `withdrawal`, `upload`. Also `auth signin-phone` (CN only), `group directory`, `event roles`/`calendar-url`, and many more `ticket` subcommands. Feature-gated modules (discussion, poll, hackathon, stripe, withdrawal) 404 when the server flag or the group's flag is off. Run `sola <command> --help` for exact options; COMMANDS.md has a one-line index of every subcommand.

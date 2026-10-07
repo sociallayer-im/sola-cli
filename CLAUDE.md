@@ -42,7 +42,7 @@ sails" below if you're diffing against old behavior.
 ## Architecture
 
 ### Entry Point: `bin/sola.js`
-Imports all 12 command modules and registers them with yargs. Enables
+Imports all 33 command modules and registers them with yargs. Enables
 automatic `--help` support across all commands.
 
 ### Core Modules: `lib/`
@@ -98,6 +98,17 @@ One file per domain, each exporting a yargs command builder (`command`,
 | `ticket.js` | list-types/list/create/update/remove/rsvp/verify-payment/cancel-unpaid/check-coupon/coupon-price |
 | `discover.js` | home/search |
 | `service.js` | upload-image |
+| `form` | event forms + standalone forms (define, submit, read answers) |
+| `team` | teams within a group (CRUD, members) |
+| `marker` / `event-role` / `recurring` | map markers; event co-host/speaker/judge roles; recurring series |
+| `comment` / `activity` | comments (star/remove); activity feed + mark-read |
+| `category` / `topic` / `reply` | discussion boards (gated by `DISCUSSION_ENABLED` + group flag) |
+| `poll` | polls: CRUD, vote/retract/close, flag, CSV export (`POLL_ENABLED`) |
+| `hackathon` / `hackathon-project` | hackathons and projects (`HACKATHON_ENABLED`) |
+| `badge-class` / `badge` / `voucher` / `remember` | badges, vouchers, shared commemorative badges |
+| `oauth` | developer portal: apps, grants, admin review |
+| `stripe` / `withdrawal` | payment settings (`STRIPE_ENABLED`) and CN withdrawals (`WECHAT_PAY_ENABLED`) |
+| `upload` | file (document rail; `service upload-image` is the image rail) |
 
 ## Key Implementation Patterns
 
@@ -257,3 +268,7 @@ create/update/delete commands against production data).
 - **JSON-only output:** no table formatting or other output modes.
 - **Streaming not supported:** uploads use `FormData` but read the whole file
   into memory first (fine for the 10MB cap `soon` enforces).
+
+### Newer modules
+
+`lib/api-forms.js`, `lib/api-community.js` and `lib/api-assets.js` hold the endpoint functions for the modules added after the rewrite (forms/teams/markers/…; discussion/polls/hackathons; badges/OAuth/payments/uploads). `lib/api.js` re-exports them, so `import … from "../api.js"` still works. Updated against soon on 2026-10-07; see COMMANDS.md index.

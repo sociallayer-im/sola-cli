@@ -109,6 +109,17 @@ node bin/sola.js event create \
 | `ticket` | list-types/list/create/update/remove/rsvp/verify-payment/cancel-unpaid/check-coupon/coupon-price |
 | `discover` | home/search — public homepage payload + global search |
 | `service` | upload-image |
+| `form` | event forms + standalone forms (define, submit, read answers) |
+| `team` | teams within a group (CRUD, members) |
+| `marker` / `event-role` / `recurring` | map markers; event co-host/speaker/judge roles; recurring series |
+| `comment` / `activity` | comments (star/remove); activity feed + mark-read |
+| `category` / `topic` / `reply` | discussion boards (gated by `DISCUSSION_ENABLED` + group flag) |
+| `poll` | polls: CRUD, vote/retract/close, flag, CSV export (`POLL_ENABLED`) |
+| `hackathon` / `hackathon-project` | hackathons and projects (`HACKATHON_ENABLED`) |
+| `badge-class` / `badge` / `voucher` / `remember` | badges, vouchers, shared commemorative badges |
+| `oauth` | developer portal: apps, grants, admin review |
+| `stripe` / `withdrawal` | payment settings (`STRIPE_ENABLED`) and CN withdrawals (`WECHAT_PAY_ENABLED`) |
+| `upload` | file (document rail; `service upload-image` is the image rail) |
 
 Every command supports `--help` for its full parameter list.
 
