@@ -206,3 +206,11 @@ $ echo $?
 ## License
 
 MIT
+
+For Soda production, the public sign-in site is `https://soda.fan`.
+For the Soda API, set `SOLA_API_URL=https://api.soda.fan`.
+The earlier `https://api.juluo.xyz` API origin remains available and is still
+the OAuth issuer. OAuth client registration uses
+`sola oauth app-create`. For a confidential client, supply
+`--credentials-out /path/to/new-private-file.json` to save the one-time
+secret in a file readable only by its owner; it is not printed to stdout.
