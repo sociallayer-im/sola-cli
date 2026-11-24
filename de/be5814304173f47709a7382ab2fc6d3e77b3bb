@@ -1,0 +1,21 @@
+README.md
+  s_ae1b3622fa26f6::t_842ebc49301b12 209-216
+lib/commands/oauth.js
+  s_ae1b3622fa26f6::t_ff7325e0b3574d 1,7,38-40,43,47-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "debe5814304173f47709a7382ab2fc6d3e77b3bb",
+  "prompts": {},
+  "sessions": {
+    "s_ae1b3622fa26f6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1913c-2175-7e80-bd56-a7d97d829826",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
