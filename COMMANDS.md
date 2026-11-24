@@ -773,3 +773,25 @@ One line per subcommand; run `sola <command> <sub> --help` for options. Sections
 ### upload
 
 - `sola upload file` — Upload a document (pdf, txt, csv, zip, Office files, or png/jpg/gif/webp)
+
+### Community projects
+
+`project` manages ongoing personal projects in a community with its Projects tab enabled. Lists and details support anonymous access. Creation and commenting require an active community membership.
+
+```bash
+sola project list --group mushenzhen --page 1
+sola project create --group mushenzhen --title "My project" --tagline "What it does" \
+  --content "Project introduction" --icon-file ./logo.png --cover-file ./cover.png \
+  --product-image ./product-1.png --product-image ./product-2.png
+sola project update --group mushenzhen --id PROJECT_ID --status published
+sola project get --group mushenzhen --id PROJECT_ID
+sola project invite --group mushenzhen --id PROJECT_ID --username HANDLE --role Design
+sola project accept-invite --group mushenzhen --id PROJECT_ID --member MEMBERSHIP_ID
+sola project remove-member --group mushenzhen --id PROJECT_ID --member MEMBERSHIP_ID
+sola project comment --group mushenzhen --id PROJECT_ID --content "Looks great!"
+sola project comments --group mushenzhen --id PROJECT_ID --page 1
+sola project remove-comment --group mushenzhen --id PROJECT_ID --comment COMMENT_ID
+sola project hide --group mushenzhen --id PROJECT_ID
+```
+
+Use `--icon-url` and `--cover-url` for existing images. Set the ordered gallery with `--gallery-json '[{"url":"https://example.com/preview.png","caption":"Preview"}]'` or by uploading files with `--product-image`. Gallery options replace the gallery on update. Pass `--gallery-json '[]'` to clear it. An invited participant signs in under their own account and finds their membership ID in `project get`.

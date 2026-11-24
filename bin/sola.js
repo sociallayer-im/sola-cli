@@ -27,6 +27,7 @@ import * as reply            from '../lib/commands/reply.js'
 import * as poll             from '../lib/commands/poll.js'
 import * as hackathon        from '../lib/commands/hackathon.js'
 import * as hackathonProject from '../lib/commands/hackathon-project.js'
+import * as project          from '../lib/commands/project.js'
 import * as badgeClass       from '../lib/commands/badge-class.js'
 import * as badge            from '../lib/commands/badge.js'
 import * as voucher          from '../lib/commands/voucher.js'
@@ -64,6 +65,7 @@ yargs(hideBin(process.argv))
   .command(poll)
   .command(hackathon)
   .command(hackathonProject)
+  .command(project)
   .command(badgeClass)
   .command(badge)
   .command(voucher)
