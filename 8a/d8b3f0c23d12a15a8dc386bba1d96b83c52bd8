@@ -1,0 +1,24 @@
+COMMANDS.md
+  s_a4066d71f584a5::t_6057efee61c21c 140-149
+lib/commands/group.js
+  s_a4066d71f584a5::t_6057efee61c21c 3,228-241
+  s_a4066d71f584a5::t_d2b4c631672124 242-243
+lib/api.js
+  s_a4066d71f584a5::t_6057efee61c21c 159-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ad8b3f0c23d12a15a8dc386bba1d96b83c52bd8",
+  "prompts": {},
+  "sessions": {
+    "s_a4066d71f584a5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20931-091c-72e3-a378-56e730c09435",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
