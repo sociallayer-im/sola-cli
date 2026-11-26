@@ -137,6 +137,16 @@ Requires auth + manager role. Broadcasts to every active member, or previews to 
 sola group send-email --id <tsid> --subject <text> --content <text> [--test-recipient <email>]
 ```
 
+### `group lookup-emails`
+
+```bash
+sola group lookup-emails --group <tsid-or-slug> [--user-ids <id,id>] [--usernames <name,name>]
+```
+
+Requires group manager access. Supply 1–100 IDs and/or usernames in total. Returns
+`{ data: [{ id, username, email }] }` for matching members of the group. Members
+without an email have `email: null`. Unmatched inputs are omitted.
+
 ### `group members`
 No auth required. Each row includes a **membership id** — needed by `set-role`/`remove-membership`.
 ```
